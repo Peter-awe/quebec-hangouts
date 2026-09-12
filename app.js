@@ -101,6 +101,7 @@
     tennis: '<svg viewBox="0 0 300 200"><rect width="300" height="200" fill="#2f6690"/><rect x="20" y="40" width="260" height="120" fill="#3a7bab"/><g fill="none" stroke="#fff" stroke-width="2.4"><rect x="20" y="40" width="260" height="120"/><line x1="20" y1="55" x2="280" y2="55"/><line x1="20" y1="145" x2="280" y2="145"/><line x1="80" y1="55" x2="80" y2="145"/><line x1="220" y1="55" x2="220" y2="145"/><line x1="80" y1="100" x2="220" y2="100"/><line x1="20" y1="100" x2="26" y2="100"/><line x1="274" y1="100" x2="280" y2="100"/></g><line x1="150" y1="30" x2="150" y2="170" stroke="#e9eef2" stroke-width="4"/></svg>',
     badminton: '<svg viewBox="0 0 300 200"><rect width="300" height="200" fill="#1f5a44"/><rect x="20" y="41" width="260" height="118" fill="#2a7457"/><g fill="none" stroke="#fff" stroke-width="2.4"><rect x="20" y="41" width="260" height="118"/><line x1="20" y1="50" x2="280" y2="50"/><line x1="20" y1="150" x2="280" y2="150"/><line x1="112" y1="41" x2="112" y2="159"/><line x1="188" y1="41" x2="188" y2="159"/><line x1="35" y1="41" x2="35" y2="159"/><line x1="265" y1="41" x2="265" y2="159"/><line x1="20" y1="100" x2="112" y2="100"/><line x1="188" y1="100" x2="280" y2="100"/></g><line x1="150" y1="32" x2="150" y2="168" stroke="#f1f3ef" stroke-width="4"/></svg>',
     rink: '<svg viewBox="0 0 300 200"><rect width="300" height="200" fill="#dce8ef"/><rect x="20" y="44" width="260" height="112" rx="37" fill="#f6fafc" stroke="#9fb3bf" stroke-width="3"/><g stroke-width="3"><line x1="150" y1="44" x2="150" y2="156" stroke="#c0301f"/><line x1="117" y1="44" x2="117" y2="156" stroke="#1c6590"/><line x1="183" y1="44" x2="183" y2="156" stroke="#1c6590"/><line x1="34" y1="52" x2="34" y2="148" stroke="#c0301f" stroke-width="2"/><line x1="266" y1="52" x2="266" y2="148" stroke="#c0301f" stroke-width="2"/></g><g fill="none" stroke="#c0301f" stroke-width="2"><circle cx="150" cy="100" r="20" stroke="#1c6590"/><circle cx="66" cy="72" r="15"/><circle cx="66" cy="128" r="15"/><circle cx="234" cy="72" r="15"/><circle cx="234" cy="128" r="15"/></g></svg>',
+    boulder: '<svg viewBox="0 0 300 200"><rect width="300" height="200" fill="#2b3531"/><polygon points="0,0 120,0 150,150 0,150" fill="#d9d4cb"/><polygon points="120,0 230,0 205,150 150,150" fill="#c7c1b6"/><polygon points="230,0 300,0 300,150 205,150" fill="#e3ded5"/><rect x="0" y="150" width="300" height="50" fill="#1d2622"/><rect x="0" y="150" width="300" height="6" fill="#3f4b46"/><g><circle cx="34" cy="120" r="7" fill="#c0301f"/><circle cx="62" cy="92" r="6" fill="#c0301f"/><circle cx="48" cy="60" r="8" fill="#c0301f"/><circle cx="86" cy="36" r="7" fill="#c0301f"/><ellipse cx="140" cy="118" rx="9" ry="6" fill="#f3c969"/><ellipse cx="160" cy="84" rx="8" ry="5" fill="#f3c969"/><ellipse cx="150" cy="48" rx="10" ry="6" fill="#f3c969"/><ellipse cx="176" cy="20" rx="9" ry="6" fill="#f3c969"/><circle cx="232" cy="124" r="6" fill="#1c6590"/><circle cx="262" cy="98" r="8" fill="#1c6590"/><circle cx="240" cy="66" r="6" fill="#1c6590"/><circle cx="276" cy="34" r="7" fill="#1c6590"/><circle cx="104" cy="128" r="5" fill="#2a7457"/><circle cx="196" cy="110" r="5" fill="#2a7457"/><circle cx="214" cy="40" r="5" fill="#2a7457"/></g></svg>',
     gym: '<svg viewBox="0 0 300 200"><rect width="300" height="200" fill="#16201b"/><g fill="#e6ece8"><rect x="60" y="96" width="180" height="8" rx="3"/><rect x="72" y="62" width="16" height="76" rx="4"/><rect x="92" y="72" width="12" height="56" rx="4"/><rect x="212" y="62" width="16" height="76" rx="4"/><rect x="196" y="72" width="12" height="56" rx="4"/></g><rect x="48" y="92" width="12" height="16" rx="3" fill="#c0301f"/><rect x="240" y="92" width="12" height="16" rx="3" fill="#c0301f"/></svg>'
   };
 
@@ -286,12 +287,37 @@
   }
 
   // ---------- network ----------
-  async function loadCounts() {
+  // Browser extensions that rewrite CORS headers (e.g. "Allow CORS", ModHeader) make fetch() throw
+  // even though the sheet received the request. JSONP reads and no-cors writes don't depend on those headers.
+  function jsonp(url) {
+    return new Promise((resolve, reject) => {
+      const cb = 'qhCounts' + Date.now() + Math.floor(Math.random() * 1e6);
+      const script = document.createElement('script');
+      const done = () => { clearTimeout(timer); delete window[cb]; script.remove(); };
+      const timer = setTimeout(() => { done(); reject(new Error('timeout')); }, 15000);
+      window[cb] = (data) => { done(); resolve(data); };
+      script.onerror = () => { done(); reject(new Error('jsonp')); };
+      script.src = url + (url.includes('?') ? '&' : '?') + 'callback=' + cb + '&t=' + Date.now();
+      document.head.append(script);
+    });
+  }
+
+  async function fetchCounts() {
     try {
       const res = await fetch(API, { cache: 'no-store' });
       const data = await res.json();
       if (!data.ok) throw new Error(data.error || 'bad');
-      state.counts = data.counts || {};
+      return data.counts || {};
+    } catch (e) {
+      const data = await jsonp(API);
+      if (!data || !data.ok) throw new Error('bad');
+      return data.counts || {};
+    }
+  }
+
+  async function loadCounts() {
+    try {
+      state.counts = await fetchCounts();
       state.countsLoaded = true;
     } catch (e) {
       state.countsLoaded = true;
@@ -305,7 +331,8 @@
     email: 'That email address doesn’t look right. Fix it and try again.',
     date: 'That day is no longer open for sign-ups. Pick another one.',
     rate: 'Too many changes in a short time. Wait a few minutes and try again.',
-    activity: 'Something is off with this activity. Refresh the page and try again.'
+    activity: 'Something is off with this activity. Refresh the page and try again.',
+    unconfirmed: 'Your browser blocked the reply from the sign-up sheet, so this couldn’t be confirmed. Try again in a private window or with ad-blocking and CORS extensions turned off.'
   };
 
   function toggle(act, iso) {
@@ -326,11 +353,20 @@
 
     try {
       const p = state.profile;
-      const res = await fetch(API, {
-        method: 'POST',
-        body: JSON.stringify({ action, email: p.email, name: p.name || '', chat: p.chat || '', seats: p.seats || 0, website: p.website || '', activityId: act.id, activity: act.name, date: iso })
-      });
-      const data = await res.json();
+      const body = JSON.stringify({ action, email: p.email, name: p.name || '', chat: p.chat || '', seats: p.seats || 0, website: p.website || '', activityId: act.id, activity: act.name, date: iso });
+      let data;
+      try {
+        const res = await fetch(API, { method: 'POST', body });
+        data = await res.json();
+      } catch (netErr) {
+        // Couldn't read the reply. Send again without CORS (the sheet ignores duplicates), then check the headcount.
+        await fetch(API, { method: 'POST', mode: 'no-cors', body }).catch(() => {});
+        const counts = await fetchCounts().catch(() => null);
+        const n = counts ? (counts[k] || 0) : null;
+        const confirmed = n !== null && (action === 'join' ? n >= before.n + 1 : n <= Math.max(0, before.n - 1));
+        if (!confirmed) throw Object.assign(new Error('unconfirmed'), { code: n === null ? 'unconfirmed' : 'network' });
+        data = { ok: true, counts };
+      }
       if (!data.ok) throw Object.assign(new Error(data.error), { code: data.error });
       state.counts = data.counts || state.counts;
       store.set('qh.mine', [...state.mine]);
@@ -404,7 +440,18 @@
     toastTimer = setTimeout(() => { t.hidden = true; }, isErr ? 7000 : 5000);
   }
 
+  // "Montréal · Fall 2026", "Montréal · Winter 2026–27", computed from today's date in Montréal.
+  function seasonLabel(iso) {
+    const [y, m] = iso.split('-').map(Number);
+    if (m === 12) return 'Winter ' + y + '–' + String(y + 1).slice(2);
+    if (m <= 2) return 'Winter ' + (y - 1) + '–' + String(y).slice(2);
+    if (m <= 5) return 'Spring ' + y;
+    if (m <= 8) return 'Summer ' + y;
+    return 'Fall ' + y;
+  }
+
   // ---------- boot ----------
+  document.getElementById('season').textContent = 'Montréal · ' + seasonLabel(todayISO);
   document.getElementById('checked-date').textContent = fmt(CHECKED, { month: 'long', day: 'numeric', year: 'numeric' });
   renderProfileBar();
   renderFilters();

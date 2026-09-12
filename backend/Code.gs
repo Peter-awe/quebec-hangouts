@@ -4,7 +4,7 @@
  * Lives inside a Google Sheet (Extensions → Apps Script) and is deployed as a
  * Web app ("Execute as: Me", "Who has access: Anyone").
  *
- * Public GET  → headcounts only: { ok, today, counts: { "<activityId>|<yyyy-mm-dd>": n } }
+ * Public GET  → headcounts only: { ok, today, counts: { "<activityId>|<yyyy-mm-dd>": n } } (JSONP with ?callback=)
  * Public POST → join / leave one activity on one date. Emails stay in the Sheet;
  *               they are never returned to the page.
  */
@@ -22,13 +22,21 @@ function setup() {
   Logger.log('Ready. Sheet tab "%s" exists. Organizer email: %s', SHEET_NAME, Session.getEffectiveUser().getEmail());
 }
 
-function doGet() {
+function doGet(e) {
+  let payload;
   try {
-    return json_({ ok: true, today: today_(), counts: counts_() });
+    payload = { ok: true, today: today_(), counts: counts_() };
   } catch (err) {
     console.error(err);
-    return json_({ ok: false, error: 'server' });
+    payload = { ok: false, error: 'server' };
   }
+  // ?callback=name returns JSONP, for browsers whose extensions break CORS on fetch().
+  const cb = e && e.parameter && e.parameter.callback;
+  if (cb && /^[A-Za-z_$][\w$]{0,60}$/.test(cb)) {
+    return ContentService.createTextOutput(cb + '(' + JSON.stringify(payload) + ');')
+      .setMimeType(ContentService.MimeType.JAVASCRIPT);
+  }
+  return json_(payload);
 }
 
 function doPost(e) {
@@ -170,7 +178,8 @@ function notify_(who, activityId, activity, date, chat) {
     });
     MailApp.sendEmail({
       to: Session.getEffectiveUser().getEmail(),
-      subject: '[Québec Hangouts] ' + activity + ' on ' + date + ': now ' + n + (n === 1 ? ' person' : ' people'),
+      // Plain ASCII subject: some mail apps garble accented letters in subjects sent by MailApp.
+      subject: ascii_('[Quebec Hangouts] ' + activity + ' on ' + date + ': now ' + n + (n === 1 ? ' person' : ' people')),
       body: who + ' signed up for ' + activity + ' on ' + date + (chat ? ' (prefers ' + chat + ')' : '') + '.\n' +
             'Headcount for that day: ' + n + '.\n' +
             'Chat apps so far: WhatsApp ' + apps.WhatsApp + ', WeChat ' + apps.WeChat + ', no preference ' + apps['No preference'] + '.\n\n' +
@@ -179,6 +188,12 @@ function notify_(who, activityId, activity, date, chat) {
   } catch (err) {
     console.error('notify failed', err);
   }
+}
+
+function ascii_(s) {
+  return String(s).normalize('NFD').replace(/[\u0300-\u036f]/g, '')
+    .replace(/[\u2018\u2019]/g, "'").replace(/[\u201C\u201D]/g, '"').replace(/[\u2013\u2014]/g, '-')
+    .replace(/[^\x20-\x7E]/g, '');
 }
 
 function json_(obj) {

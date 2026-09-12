@@ -18,6 +18,7 @@ window.QH_DATA = {
     { id: 'nature', label: 'Mountains & lakes', note: 'Fall colour peak forecast: Laurentians 1st week of October · Mont-Orford and Montérégie 3rd week · Montréal 3rd–4th week' },
     { id: 'eat', label: 'Where to eat', note: 'Sometimes the outing is just a really good meal' },
     { id: 'cepsum', label: 'CEPSUM', note: 'UdeM’s sports centre, free for UdeM, Polytechnique and HEC students with a student card · 2100 boul. Édouard-Montpetit · weekdays 6:30–23:00, weekends 8:30–20:30' },
+    { id: 'climb', label: 'Climbing', note: 'Peter’s Friday-night habit. Come along.' },
     { id: 'museums', label: 'Museums', note: 'Good on any day, great on a rainy one' },
     { id: 'events', label: 'Seasonal & shows', note: 'Games, concerts, lights and markets' },
     { id: 'snow', label: 'Snow', note: 'Ski season 2026–27' }
@@ -326,6 +327,31 @@ window.QH_DATA = {
       ]
     },
 
+    // ---------------- Climbing ----------------
+    {
+      id: 'blocshop-mileex',
+      cat: 'climb',
+      name: 'Friday climbing at Bloc Shop',
+      local: 'Bloc Shop Mile-Ex · bouldering',
+      blurb: 'Peter climbs here most Friday nights, because Fridays cost $10 all day. It’s bouldering: no ropes, walls 3 to 4.5 m high over thick mats, and no reservation. First-timers welcome.',
+      art: 'boulder',
+      tags: [{ label: '$10 on Fridays', kind: 'free' }, { label: 'No reservation' }, { label: 'Beginners welcome' }],
+      facts: [
+        ['Fridays', '$10 all day (the “Vendredix” deal, bought on site) instead of $19 · prices before tax'],
+        ['Other days', 'Off-peak $15 (weekdays before 15:00, weekends after 15:00) · 7 days unlimited $26'],
+        ['Gear', 'Shoe rental $5 · chalk bag $3 · wear sports clothes (a top is required)'],
+        ['First time', 'Sign the waiver online or at the desk; staff go over the safety rules in 2–3 minutes'],
+        ['Hours', 'Mon–Fri 10:00–23:00 · Sat–Sun 9:00–21:00'],
+        ['Where', '6595A rue Saint-Urbain, Mile-Ex']
+      ],
+      schedule: { type: 'weekly', days: [5], dayNotes: { 5: 'evening' } },
+      sources: [
+        { label: 'Bloc Shop · Rates (Vendredix, day passes, rentals, hours)', url: 'https://blocshop.com/tarifs/' },
+        { label: 'Bloc Shop · First time', url: 'https://blocshop.com/premiere-fois/' },
+        { label: 'Bloc Shop · Gyms and addresses', url: 'https://blocshop.com/' }
+      ]
+    },
+
     // ---------------- Museums ----------------
     {
       id: 'redpath',
@@ -486,25 +512,6 @@ window.QH_DATA = {
       },
       sources: [
         { label: 'Faculté de musique · 2026–2027 season', url: 'https://musique.umontreal.ca/concerts-et-evenements/saison-2026-2027/' }
-      ]
-    },
-    {
-      id: 'cepsum-climb',
-      cat: 'cepsum',
-      name: 'Try climbing night',
-      local: 'CEPSUM · Université de Montréal sports centre',
-      blurb: 'A free first-time climbing session: staff handle the ropes, gear is provided, no certification needed. Open to members and non-members.',
-      img: { src: 'assets/img/cepsum-climb.jpg', alt: 'A colourful indoor climbing wall (not the CEPSUM wall)', credit: 'Ka23 13 · CC BY-SA 4.0 · cropped', page: 'https://commons.wikimedia.org/wiki/File:Climbing_wall_20211103_145408.jpg' },
-      tags: [{ label: 'Free', kind: 'free' }, { label: 'One night only', kind: 'limited' }],
-      facts: [
-        ['Price', 'Free'],
-        ['When', 'Monday Sept 28, sessions at 18:00, 19:00 or 20:00 (55 min each)'],
-        ['Where', ['2100 boul. Édouard-Montpetit · ', { metro: 'blue', station: 'Édouard-Montpetit' }]],
-        ['Sign-up', 'Register for a time slot on the CEPSUM page too']
-      ],
-      schedule: { type: 'dates', endedNote: 'This session has passed.', dates: [{ date: '2026-09-28', note: '18:00–21:00' }] },
-      sources: [
-        { label: 'CEPSUM · Escalade initiation', url: 'https://www.cepsum.umontreal.ca/activite/escalade-initiation' }
       ]
     },
     {

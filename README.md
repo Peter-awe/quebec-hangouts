@@ -12,7 +12,7 @@ Pick a place and a day around Montréal. When other people pick the same one, we
 
 ## Adding a place
 
-Add an object to `ACTIVITIES` in `data.js` with an `id` (lowercase letters, digits and dashes), a category, facts, a `schedule` and at least one source. For the picture, use one of: `img` (a 1200×800 photo in `assets/img/`, with its author and license in `img.credit`), `board` (the chalkboard used for restaurants) or `art` (`tennis`, `badminton`, `rink`, `gym`).
+Add an object to `ACTIVITIES` in `data.js` with an `id` (lowercase letters, digits and dashes), a category, facts, a `schedule` and at least one source. For the picture, use one of: `img` (a 1200×800 photo in `assets/img/`, with its author and license in `img.credit`), `board` (the chalkboard used for restaurants) or `art` (`tennis`, `badminton`, `rink`, `gym`, `boulder`).
 
 ## Photos
 

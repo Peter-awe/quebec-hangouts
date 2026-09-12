@@ -255,6 +255,7 @@
     const empty = document.getElementById('upcoming-empty');
     list.replaceChildren();
     if (!state.countsLoaded) { empty.textContent = 'Loading headcounts…'; empty.hidden = false; return; }
+    if (state.countsFailed) { empty.textContent = 'Headcounts didn’t load in this browser. Refresh to try again; an ad blocker or a CORS extension can cause this.'; empty.hidden = false; return; }
     const rows = Object.entries(state.counts)
       .map(([k, n]) => { const [id, date] = k.split('|'); return { act: ACTIVITIES.find((a) => a.id === id), date, n }; })
       .filter((r) => r.act && r.n > 0 && r.date >= todayISO)
@@ -334,6 +335,7 @@
       state.countsLoaded = true;
     } catch (e) {
       state.countsLoaded = true;
+      state.countsFailed = true;
       toast('Headcounts couldn’t load. You can still sign up; refresh later to see who’s going.', true);
     }
     renderUpcoming();

@@ -6,25 +6,95 @@
  *
  * Public GET  → headcounts only: { ok, today, counts: { "<activityId>|<yyyy-mm-dd>": n } } (JSONP with ?callback=)
  * Public POST → join / leave one activity on one date, or suggest a place / movie.
+ * Trigger     → sendPendingNotifications() every 5 minutes (installed by setup()).
  *               Emails stay in the Sheet; they are never returned to the page.
  */
 
-const VERSION = 3;
+const VERSION = 4;
 const SHEET_NAME = 'signups';
 const SUGGEST_SHEET = 'suggestions';
 const SUGGEST_HEADERS = ['Timestamp', 'Kind', 'Name', 'When', 'Link', 'Note', 'Email', 'Status'];
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/;
 const TZ = 'America/Montreal';
-const NOTIFY_ORGANIZER = true;          // email the Sheet owner on every new sign-up
+const NOTIFY_ORGANIZER = true;          // email the Sheet owner about sign-ups
+const NOTIFY_DELAY_MIN = 30;            // wait this long, so quick cancellations never reach the inbox
 const MAX_DAYS_AHEAD = 400;
-const HEADERS = ['Timestamp', 'Email', 'Name', 'Activity ID', 'Activity', 'Date', 'Car seats', 'Status', 'Chat'];
-const COL = { email: 2, activityId: 4, date: 6, status: 8, chat: 9 };
+const HEADERS = ['Timestamp', 'Email', 'Name', 'Activity ID', 'Activity', 'Date', 'Car seats', 'Status', 'Chat', 'Notified'];
+const COL = { email: 2, name: 3, activityId: 4, activity: 5, date: 6, seats: 7, status: 8, chat: 9, notified: 10 };
 
-/** Run once from the editor: creates the tab and triggers the permission prompt. */
+/**
+ * Run once from the editor (and again after pasting a new version):
+ * creates the tabs, installs the 5-minute email trigger, and triggers the permission prompt.
+ */
 function setup() {
   sheet_();
   suggestSheet_();
-  Logger.log('Ready. Sheet tab "%s" exists. Organizer email: %s', SHEET_NAME, Session.getEffectiveUser().getEmail());
+  ScriptApp.getProjectTriggers()
+    .filter(function (t) { return t.getHandlerFunction() === 'sendPendingNotifications'; })
+    .forEach(function (t) { ScriptApp.deleteTrigger(t); });
+  ScriptApp.newTrigger('sendPendingNotifications').timeBased().everyMinutes(5).create();
+  Logger.log('Ready. Email trigger installed. Organizer email: %s', Session.getEffectiveUser().getEmail());
+}
+
+/**
+ * Runs every 5 minutes. Emails the organizer about sign-ups that are at least NOTIFY_DELAY_MIN old
+ * and still active: one email per activity and date. Sign-ups cancelled in the meantime are skipped.
+ * Only rows marked 'pending' are considered, so rows from older versions are never re-sent.
+ */
+function sendPendingNotifications() {
+  const lock = LockService.getScriptLock();
+  if (!lock.tryLock(20000)) return;
+  try {
+    const sh = sheet_();
+    const rows = sh.getDataRange().getValues();
+    const cutoff = Date.now() - NOTIFY_DELAY_MIN * 60 * 1000;
+    const groups = {};
+    for (let i = 1; i < rows.length; i++) {
+      const r = rows[i];
+      if (r[COL.notified - 1] !== 'pending') continue;
+      const ts = r[0] instanceof Date ? r[0].getTime() : Date.parse(r[0]);
+      if (!(ts <= cutoff)) continue;
+      if (r[COL.status - 1] !== 'active') {
+        sh.getRange(i + 1, COL.notified).setValue('skipped (cancelled)');
+        continue;
+      }
+      const g = r[COL.activityId - 1] + '|' + dateText_(r[COL.date - 1]);
+      (groups[g] = groups[g] || []).push(i);
+    }
+
+    Object.keys(groups).forEach(function (g) {
+      const parts = g.split('|');
+      const activityId = parts[0];
+      const date = parts[1];
+      const idx = groups[g];
+      const activity = String(rows[idx[0]][COL.activity - 1] || activityId);
+      const everyone = rows.filter(function (r, i) {
+        return i > 0 && r[COL.status - 1] === 'active' && String(r[COL.activityId - 1]) === activityId && dateText_(r[COL.date - 1]) === date;
+      });
+      const apps = { WhatsApp: 0, WeChat: 0, 'No preference': 0 };
+      everyone.forEach(function (r) { apps[r[COL.chat - 1] || 'No preference']++; });
+      const lines = idx.map(function (i) {
+        const r = rows[i];
+        const seats = parseInt(r[COL.seats - 1], 10) || 0;
+        return '- ' + (r[COL.name - 1] || r[COL.email - 1]) + ' <' + r[COL.email - 1] + '>' +
+          (r[COL.chat - 1] ? ', prefers ' + r[COL.chat - 1] : '') + (seats ? ', has a car with ' + seats + ' free seat(s)' : '');
+      });
+      if (NOTIFY_ORGANIZER) {
+        MailApp.sendEmail({
+          to: Session.getEffectiveUser().getEmail(),
+          subject: ascii_('[Quebec Hangouts] ' + activity + ' on ' + date + ': ' + idx.length + ' new, ' + everyone.length + ' going'),
+          body: 'New for ' + activity + ' on ' + date + ':\n' + lines.join('\n') + '\n\n' +
+                'Headcount for that day: ' + everyone.length + '.\n' +
+                'Chat apps: WhatsApp ' + apps.WhatsApp + ', WeChat ' + apps.WeChat + ', no preference ' + apps['No preference'] + '.\n\n' +
+                'Open the Sheet to see everyone.'
+        });
+      }
+      const stamp = Utilities.formatDate(new Date(), TZ, 'yyyy-MM-dd HH:mm');
+      idx.forEach(function (i) { sh.getRange(i + 1, COL.notified).setValue('sent ' + stamp); });
+    });
+  } finally {
+    lock.releaseLock();
+  }
 }
 
 function doGet(e) {
@@ -88,14 +158,9 @@ function doPost(e) {
     }
 
     if (action === 'join' && rowNumber === -1) {
-      sh.appendRow([new Date(), cell_(email), cell_(name), activityId, cell_(activity), date, seats, 'active', chat]);
+      // 'pending': sendPendingNotifications() emails the organizer after NOTIFY_DELAY_MIN if still active.
+      sh.appendRow([new Date(), cell_(email), cell_(name), activityId, cell_(activity), date, seats, 'active', chat, 'pending']);
       CacheService.getScriptCache().remove('counts');
-      // One email per person/activity/day, so join-leave-join doesn't flood the organizer.
-      const noteKey = 'n:' + email + '|' + activityId + '|' + date;
-      if (NOTIFY_ORGANIZER && !CacheService.getScriptCache().get(noteKey)) {
-        CacheService.getScriptCache().put(noteKey, '1', 21600);
-        notify_(name || email, activityId, activity || activityId, date, chat);
-      }
     }
     if (action === 'leave' && rowNumber !== -1) {
       sh.getRange(rowNumber, COL.status).setValue('cancelled');
@@ -230,29 +295,6 @@ function rateOk_(email) {
   if (n >= 20) return false;
   cache.put(key, String(n + 1), 3600);
   return true;
-}
-
-function notify_(who, activityId, activity, date, chat) {
-  try {
-    const n = counts_()[activityId + '|' + date] || 1;
-    const apps = { WhatsApp: 0, WeChat: 0, 'No preference': 0 };
-    sheet_().getDataRange().getValues().slice(1).forEach(function (r) {
-      if (r[COL.status - 1] === 'active' && String(r[COL.activityId - 1]) === activityId && dateText_(r[COL.date - 1]) === date) {
-        apps[r[COL.chat - 1] || 'No preference']++;
-      }
-    });
-    MailApp.sendEmail({
-      to: Session.getEffectiveUser().getEmail(),
-      // Plain ASCII subject: some mail apps garble accented letters in subjects sent by MailApp.
-      subject: ascii_('[Quebec Hangouts] ' + activity + ' on ' + date + ': now ' + n + (n === 1 ? ' person' : ' people')),
-      body: who + ' signed up for ' + activity + ' on ' + date + (chat ? ' (prefers ' + chat + ')' : '') + '.\n' +
-            'Headcount for that day: ' + n + '.\n' +
-            'Chat apps so far: WhatsApp ' + apps.WhatsApp + ', WeChat ' + apps.WeChat + ', no preference ' + apps['No preference'] + '.\n\n' +
-            'Open the Sheet to see everyone and their emails.'
-    });
-  } catch (err) {
-    console.error('notify failed', err);
-  }
 }
 
 function ascii_(s) {

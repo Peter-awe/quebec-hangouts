@@ -24,6 +24,7 @@
     mine: loadPlans(),   // Map: 'activityId|date' → email used to sign up
     filter: 'all',
     busy: new Set(),
+    selected: {},        // activityId → date tapped in that card's picker
     pending: null,
     apiVersion: 0
   };
@@ -186,9 +187,21 @@
     return card;
   }
 
+  // The date a card's picker has selected: what the visitor tapped, else their earliest plan there.
+  function selectedDate(act) {
+    const picked = state.selected[act.id];
+    if (picked && picked >= todayISO) return picked;
+    return [...state.mine.keys()]
+      .filter((k) => k.startsWith(act.id + '|'))
+      .map((k) => k.split('|')[1])
+      .filter((d) => d >= todayISO)
+      .sort()[0] || null;
+  }
+
   function renderPicker(act) {
-    const wrap = el('div', { class: 'pick' });
+    const wrap = el('div', { class: 'pick', 'data-act': act.id });
     const days = upcomingDays(act);
+    const sel = selectedDate(act);
     const head = el('div', { class: 'pick-head' },
       el('p', { class: 'section-label', text: act.schedule.type === 'dates' ? 'Pick a date' : 'Pick a day' }));
     if (act.schedule.type === 'weekly') {
@@ -205,34 +218,56 @@
     }
 
     const row = el('div', { class: 'days', role: 'group', 'aria-label': 'Available days for ' + act.name });
-    for (const d of days) row.append(dayButton(act, d));
+    for (const d of days) row.append(dayButton(act, d, sel));
     wrap.append(row);
 
     if (act.schedule.type === 'weekly') {
-      const input = el('input', { type: 'date', min: todayISO, max: lastDay(act.schedule) || addDays(todayISO, 365), 'aria-label': 'Another date for ' + act.name });
-      const go = el('button', {
-        class: 'btn ghost', type: 'button', text: 'Join that day',
-        onclick: () => {
-          if (!input.value) { toast('Choose a date first.', true); return; }
-          if (!openOn(act, input.value)) { toast(act.name + ' isn’t open on ' + longDate(input.value) + '. Pick one of its open days.', true); return; }
-          toggle(act, input.value);
+      const input = el('input', {
+        type: 'date', min: todayISO, max: lastDay(act.schedule) || addDays(todayISO, 365), value: sel && !days.some((d) => d.date === sel) ? sel : '',
+        'aria-label': 'Another date for ' + act.name,
+        onchange: () => {
+          if (!input.value) return;
+          if (!openOn(act, input.value)) { toast(act.name + ' isn’t open on ' + longDate(input.value) + '. Pick one of its open days.', true); input.value = ''; return; }
+          state.selected[act.id] = input.value;
+          refreshPicker(act);
         }
       });
-      wrap.append(el('div', { class: 'other-date' }, el('span', { text: 'Another day:' }), input, go));
+      wrap.append(el('label', { class: 'other-date' }, el('span', { text: 'Another day:' }), input));
     }
+
+    wrap.append(pickAction(act, sel));
     return wrap;
   }
 
-  function dayButton(act, d) {
+  // Confirm / Cancel bar under the dates. Nothing is saved until Confirm.
+  function pickAction(act, iso) {
+    if (!iso) return el('div', { class: 'pick-action' }, el('span', { class: 'pick-hint', text: 'Tap a date, then confirm.' }));
+    const k = key(act.id, iso);
+    const mine = state.mine.has(k);
+    const busy = state.busy.has(k);
+    const n = countFor(act.id, iso);
+    const status = mine ? 'You’re in' : !state.countsLoaded ? '' : n ? n + (n === 1 ? ' person going' : ' people going') : 'Nobody yet';
+    return el('div', { class: 'pick-action' + (mine ? ' is-mine' : ''), 'aria-live': 'polite' },
+      el('span', { class: 'pick-summary' }, el('strong', { text: longDate(iso) }), status ? ' · ' + status : ''),
+      el('button', {
+        class: 'btn ' + (mine ? 'ghost' : 'confirm'), type: 'button', disabled: busy,
+        text: busy ? (mine ? 'Saving…' : 'Saving…') : mine ? 'Cancel' : 'Confirm',
+        'aria-label': (mine ? 'Cancel ' : 'Confirm ') + act.name + ' on ' + longDate(iso),
+        onclick: () => toggle(act, iso)
+      }));
+  }
+
+  function dayButton(act, d, sel) {
     const k = key(act.id, d.date);
     const n = countFor(act.id, d.date);
     const mine = state.mine.has(k);
+    const selected = d.date === sel;
     const going = !state.countsLoaded ? '' : mine ? 'You’re in' + (n > 1 ? ' +' + (n - 1) : '') : n ? n + ' going' : 'Be first';
-    const label = longDate(d.date) + (d.note ? ', ' + d.note : '') + '. ' + (mine ? 'You’re going. Press to leave.' : n + ' going. Press to join.');
+    const label = longDate(d.date) + (d.note ? ', ' + d.note : '') + '. ' + (mine ? 'You’re going.' : n + ' going.') + ' Press to select.';
     return el('button', {
-      type: 'button', class: 'day' + (mine ? ' mine' : '') + (state.busy.has(k) ? ' busy' : ''),
-      'aria-pressed': String(mine), 'aria-label': label, 'data-key': k,
-      onclick: () => toggle(act, d.date)
+      type: 'button', class: 'day' + (mine ? ' mine' : '') + (selected ? ' selected' : '') + (state.busy.has(k) ? ' busy' : ''),
+      'aria-pressed': String(selected), 'aria-label': label, 'data-key': k,
+      onclick: () => { state.selected[act.id] = d.date; refreshPicker(act); }
     },
       el('span', { class: 'dow', text: fmt(d.date, { weekday: 'short' }) }),
       el('span', { class: 'dnum', text: fmt(d.date, { day: 'numeric' }) }),
@@ -242,13 +277,16 @@
     );
   }
 
-  function refreshDay(act, iso) {
-    const k = key(act.id, iso);
-    document.querySelectorAll('[data-key="' + CSS.escape(k) + '"]').forEach((btn) => {
-      const d = upcomingDays(act).find((x) => x.date === iso) || { date: iso };
-      btn.replaceWith(dayButton(act, d));
-    });
+  function refreshPicker(act) {
+    const old = document.querySelector('.pick[data-act="' + CSS.escape(act.id) + '"]');
+    if (!old) return;
+    const scroll = (old.querySelector('.days') || {}).scrollLeft || 0;
+    const fresh = renderPicker(act);
+    old.replaceWith(fresh);
+    const row = fresh.querySelector('.days');
+    if (row) row.scrollLeft = scroll;
   }
+  const refreshDay = (act) => refreshPicker(act);
 
   function renderUpcoming() {
     const list = document.getElementById('upcoming-list');
@@ -266,7 +304,7 @@
     for (const r of rows) {
       list.append(el('button', {
         class: 'upcoming-item', type: 'button',
-        onclick: () => { state.filter = 'all'; renderFilters(); renderGroups(); document.getElementById('act-' + r.act.id).scrollIntoView({ behavior: 'smooth', block: 'start' }); }
+        onclick: () => { state.selected[r.act.id] = r.date; state.filter = 'all'; renderFilters(); renderGroups(); document.getElementById('act-' + r.act.id).scrollIntoView({ behavior: 'smooth', block: 'start' }); }
       },
         el('span', { class: 'when', text: longDate(r.date) }),
         el('span', { class: 'what', text: r.act.name }),
@@ -391,7 +429,7 @@
       state.counts = data.counts || state.counts;
       savePlans();
       toast(action === 'join'
-        ? 'You’re in: ' + act.name + ', ' + longDate(iso) + '. It’s listed under My plans at the top.'
+        ? 'You’re in: ' + act.name + ', ' + longDate(iso) + '. Cancel any time from this card or from My plans.'
         : 'You left ' + act.name + ' on ' + longDate(iso) + '.',
         false, { label: 'Undo', run: () => send(act, iso, action === 'join' ? 'leave' : 'join') });
     } catch (e) {

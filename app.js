@@ -391,7 +391,9 @@
   };
 
   function toggle(act, iso) {
-    if (!state.profile || !state.profile.email) { openDialog({ act, iso }); return; }
+    const joining = !state.mine.has(key(act.id, iso));
+    // Joining needs an email and a chat app (older saved profiles may not have picked one yet).
+    if (!state.profile || !state.profile.email || (joining && !state.profile.chat)) { openDialog({ act, iso }); return; }
     send(act, iso, state.mine.has(key(act.id, iso)) ? 'leave' : 'join');
   }
 
@@ -429,7 +431,7 @@
       state.counts = data.counts || state.counts;
       savePlans();
       toast(action === 'join'
-        ? 'You’re in: ' + act.name + ', ' + longDate(iso) + '. In 30 minutes you’ll get an email with Peter’s WhatsApp and WeChat. Cancel before then and nothing is sent.'
+        ? 'You’re in: ' + act.name + ', ' + longDate(iso) + '. In 30 minutes you’ll get an email with Peter’s ' + (p.chat === 'wechat' ? 'WeChat' : 'WhatsApp') + '. Cancel before then and nothing is sent.'
         : 'You left ' + act.name + ' on ' + longDate(iso) + '.',
         false, { label: 'Undo', run: () => send(act, iso, action === 'join' ? 'leave' : 'join') });
     } catch (e) {
@@ -497,7 +499,9 @@
     f.name.value = p.name || '';
     f.seats.value = String(p.seats || 0);
     f.website.value = '';
-    f.chat().forEach((r) => { r.checked = r.value === (p.chat || ''); });
+    f.chat().forEach((r) => { r.checked = !!p.chat && r.value === p.chat; });
+    document.getElementById('f-chat-error').hidden = true;
+    f.chat().forEach((r) => { r.onchange = () => { document.getElementById('f-chat-error').hidden = true; }; });
     document.getElementById('join-for').textContent = pending
       ? pending.act.name + ' · ' + longDate(pending.iso)
       : 'Update the details used for your next sign-ups.';
@@ -509,11 +513,14 @@
   form.addEventListener('submit', (ev) => {
     ev.preventDefault();
     const email = f.email.value.trim();
+    const chat = (f.chat().find((r) => r.checked) || {}).value || '';
+    document.getElementById('f-chat-error').hidden = !!chat;
     if (!/^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(email)) { f.email.setCustomValidity('Enter an email like name@example.com'); f.email.reportValidity(); return; }
     f.email.setCustomValidity('');
+    if (!chat) { f.chat()[0].focus(); return; }
     state.profile = {
       email, name: f.name.value.trim().slice(0, 40),
-      chat: (f.chat().find((r) => r.checked) || {}).value || '', seats: parseInt(f.seats.value, 10) || 0,
+      chat, seats: parseInt(f.seats.value, 10) || 0,
       website: f.website.value
     };
     store.set('qh.profile', state.profile);

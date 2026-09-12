@@ -328,6 +328,7 @@ fieldset.field { border: 0; margin: 0; padding: 0; }
 .seg label:has(input:checked) { background: var(--ink); color: var(--ground); border-color: var(--ink); }
 .seg label:has(input:focus-visible) { outline: 3px solid var(--lake); outline-offset: 2px; }
 .privacy { margin: 0; font-size: 13px; color: var(--muted); }
+.field-error { margin: 0; font-size: 13px; font-weight: 600; color: var(--maple); }
 .dlg-actions { display: flex; gap: 10px; justify-content: flex-end; }
 .hp { position: absolute; left: -9999px; width: 1px; height: 1px; overflow: hidden; }
 

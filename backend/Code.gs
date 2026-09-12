@@ -12,7 +12,7 @@
  *               Emails stay in the Sheet; they are never returned to the page.
  */
 
-const VERSION = 5;
+const VERSION = 6;
 const SITE = 'https://peter-awe.github.io/quebec-hangouts/';
 const SHEET_NAME = 'signups';
 const SUGGEST_SHEET = 'suggestions';
@@ -102,7 +102,7 @@ function sendPendingNotifications() {
           body: 'New for ' + activity + ' on ' + date + ':\n' + lines.join('\n') + '\n\n' +
                 'Headcount for that day: ' + everyone.length + '.\n' +
                 'Chat apps: WhatsApp ' + apps.WhatsApp + ', WeChat ' + apps.WeChat + ', no preference ' + apps['No preference'] + '.\n\n' +
-                'Everyone listed above was emailed your WhatsApp and WeChat.\n\n' +
+                'Everyone listed above was emailed your contact for the app they picked.\n\n' +
                 'Open the Sheet to see everyone.'
         });
       }
@@ -194,17 +194,18 @@ function doPost(e) {
 function sendParticipantEmail_(to, name, chat, activityId, activity, date, going) {
   const nice = Utilities.formatDate(new Date(date + 'T12:00:00'), TZ, 'EEE, MMM d, yyyy');
   const qr = typeof QR !== 'undefined' ? QR : {};
+  // Only the app the participant picked; both only for old sign-ups made before picking was required.
   const apps = [
     { key: 'whatsapp', label: 'WhatsApp', data: qr.whatsapp },
     { key: 'wechat', label: 'WeChat', data: qr.wechat }
-  ].filter(function (a) { return a.data && a.data.link; });
-  if (chat === 'WeChat') apps.reverse();
+  ].filter(function (a) { return a.data && a.data.link && (!chat || a.label === chat); });
 
   const inlineImages = {};
   const cells = apps.map(function (a) {
-    if (a.data.b64) inlineImages[a.key] = Utilities.newBlob(Utilities.base64Decode(a.data.b64), 'image/jpeg', a.key + '.jpg');
+    // The original image file, attached as-is (no cropping, no re-compression).
+    if (a.data.b64) inlineImages[a.key] = Utilities.newBlob(Utilities.base64Decode(a.data.b64), 'image/jpeg', a.data.file || a.key + '.jpg');
     return '<td style="padding:0 16px 8px 0;vertical-align:top;text-align:center">' +
-      (a.data.b64 ? '<img src="cid:' + a.key + '" width="190" alt="Peter on ' + a.label + '" style="display:block;border:1px solid #d5dbd4;border-radius:8px"><br>' : '') +
+      (a.data.b64 ? '<img src="cid:' + a.key + '" width="320" alt="Peter on ' + a.label + '" style="display:block;max-width:100%;height:auto"><br>' : '') +
       '<a href="' + a.data.link + '" style="display:inline-block;background:#1d4b3c;color:#ffffff;text-decoration:none;padding:8px 14px;border-radius:6px;font-weight:bold">Open ' + a.label + '</a></td>';
   }).join('');
   const link = SITE + '#act-' + activityId;
@@ -214,7 +215,7 @@ function sendParticipantEmail_(to, name, chat, activityId, activity, date, going
     '<div style="font-family:Arial,Helvetica,sans-serif;font-size:15px;line-height:1.5;color:#16201b;max-width:560px">' +
     '<p>' + hi + '</p>' +
     '<p>You’re in for <b>' + esc_(activity) + '</b> on <b>' + nice + '</b>. ' + going + (going === 1 ? ' person is' : ' people are') + ' going so far.</p>' +
-    (apps.length ? '<p>Add Peter, the organizer, so he can put you in the group chat. On your phone, tap the button; on a computer, scan the code:</p>' +
+    (apps.length ? '<p>Add Peter, the organizer, on ' + apps.map(function (a) { return a.label; }).join(' or ') + ' so he can put you in the group chat. On your phone, tap the button; on a computer, scan the code:</p>' +
       '<table cellpadding="0" cellspacing="0" role="presentation"><tr>' + cells + '</tr></table>' : '<p>Peter, the organizer, will get in touch to set up the group chat.</p>') +
     '<p>Prices, hours and official links: <a href="' + link + '">' + esc_(activity) + ' on Québec Hangouts</a></p>' +
     '<p style="color:#57635d;font-size:13px">Changed your mind? Open the site in the same browser and tap Cancel under My plans, or reply to this email. ' +
@@ -223,7 +224,7 @@ function sendParticipantEmail_(to, name, chat, activityId, activity, date, going
 
   const text = (name ? 'Hi ' + name + ',' : 'Hi,') + '\n\n' +
     'You’re in for ' + activity + ' on ' + nice + '. ' + going + (going === 1 ? ' person is' : ' people are') + ' going so far.\n\n' +
-    (apps.length ? 'Add Peter, the organizer, so he can put you in the group chat:\n' + apps.map(function (a) { return a.label + ': ' + a.data.link; }).join('\n') + '\n\n' : '') +
+    (apps.length ? 'Add Peter, the organizer, on ' + apps.map(function (a) { return a.label; }).join(' or ') + ' so he can put you in the group chat:\n' + apps.map(function (a) { return a.label + ': ' + a.data.link; }).join('\n') + '\n\n' : '') +
     'Details: ' + link + '\n\n' +
     'Changed your mind? Open the site in the same browser and tap Cancel under My plans, or reply to this email.';
 

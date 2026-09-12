@@ -45,7 +45,7 @@
           <ol class="steps">
             <li><span><strong>Tap a day, then Confirm</strong> on anything below that looks fun.</span></li>
             <li><span><strong>Leave your email once.</strong> Only headcounts are public.</span></li>
-            <li><span><strong>Get Peter’s contact.</strong> 30 minutes after you confirm, an email brings his WhatsApp and WeChat so he can add you to the group chat.</span></li>
+            <li><span><strong>Get Peter’s contact.</strong> 30 minutes after you confirm, an email brings his WhatsApp or WeChat, whichever you picked, so he can add you to the group chat.</span></li>
           </ol>
           <nav class="quicklinks" aria-label="Shortcuts">
             <a href="#dice">Roll the dice</a>
@@ -117,7 +117,7 @@
       <p class="for" id="join-for"></p>
 
       <div class="field">
-        <label for="f-email">Email <span class="hint">· required: you’ll get Peter’s WhatsApp and WeChat here</span></label>
+        <label for="f-email">Email <span class="hint">· required: Peter’s contact arrives here</span></label>
         <input id="f-email" name="email" type="email" autocomplete="email" inputmode="email" required>
       </div>
 
@@ -126,13 +126,13 @@
         <input id="f-name" name="name" type="text" autocomplete="given-name" maxlength="40">
       </div>
 
-      <fieldset class="field">
-        <legend>Group chat you use <span class="hint">· optional</span></legend>
+      <fieldset class="field" id="f-chat">
+        <legend>Where should Peter add you? <span class="hint">· required: you’ll get his contact for this app</span></legend>
         <div class="seg">
-          <label><input type="radio" name="chat" value="whatsapp"><span>WhatsApp</span></label>
+          <label><input type="radio" name="chat" value="whatsapp" required><span>WhatsApp</span></label>
           <label><input type="radio" name="chat" value="wechat"><span>WeChat</span></label>
-          <label><input type="radio" name="chat" value=""><span>Either</span></label>
         </div>
+        <p class="field-error" id="f-chat-error" hidden>Pick WhatsApp or WeChat.</p>
       </fieldset>
 
       <div class="field">

@@ -5,11 +5,15 @@
  * Web app ("Execute as: Me", "Who has access: Anyone").
  *
  * Public GET  → headcounts only: { ok, today, counts: { "<activityId>|<yyyy-mm-dd>": n } } (JSONP with ?callback=)
- * Public POST → join / leave one activity on one date. Emails stay in the Sheet;
- *               they are never returned to the page.
+ * Public POST → join / leave one activity on one date, or suggest a place / movie.
+ *               Emails stay in the Sheet; they are never returned to the page.
  */
 
+const VERSION = 3;
 const SHEET_NAME = 'signups';
+const SUGGEST_SHEET = 'suggestions';
+const SUGGEST_HEADERS = ['Timestamp', 'Kind', 'Name', 'When', 'Link', 'Note', 'Email', 'Status'];
+const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/;
 const TZ = 'America/Montreal';
 const NOTIFY_ORGANIZER = true;          // email the Sheet owner on every new sign-up
 const MAX_DAYS_AHEAD = 400;
@@ -19,13 +23,14 @@ const COL = { email: 2, activityId: 4, date: 6, status: 8, chat: 9 };
 /** Run once from the editor: creates the tab and triggers the permission prompt. */
 function setup() {
   sheet_();
+  suggestSheet_();
   Logger.log('Ready. Sheet tab "%s" exists. Organizer email: %s', SHEET_NAME, Session.getEffectiveUser().getEmail());
 }
 
 function doGet(e) {
   let payload;
   try {
-    payload = { ok: true, today: today_(), counts: counts_() };
+    payload = { ok: true, version: VERSION, today: today_(), counts: counts_() };
   } catch (err) {
     console.error(err);
     payload = { ok: false, error: 'server' };
@@ -49,6 +54,7 @@ function doPost(e) {
 
   // Honeypot field: real visitors never fill it.
   if (body.website) return json_({ ok: true, counts: counts_() });
+  if (body.action === 'suggest') return json_(suggest_(body));
 
   const action = body.action === 'leave' ? 'leave' : 'join';
   const email = String(body.email || '').trim().toLowerCase();
@@ -59,7 +65,7 @@ function doPost(e) {
   const seats = Math.max(0, Math.min(8, parseInt(body.seats, 10) || 0));
   const chat = { whatsapp: 'WhatsApp', wechat: 'WeChat' }[String(body.chat || '').toLowerCase()] || '';
 
-  if (email.length > 254 || !/^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(email)) return json_({ ok: false, error: 'email' });
+  if (email.length > 254 || !EMAIL_RE.test(email)) return json_({ ok: false, error: 'email' });
   if (!/^[a-z0-9-]{2,40}$/.test(activityId)) return json_({ ok: false, error: 'activity' });
   if (!validDate_(date)) return json_({ ok: false, error: 'date' });
   if (!rateOk_(email)) return json_({ ok: false, error: 'rate' });
@@ -82,7 +88,7 @@ function doPost(e) {
     }
 
     if (action === 'join' && rowNumber === -1) {
-      sh.appendRow([new Date(), email, name, activityId, activity, date, seats, 'active', chat]);
+      sh.appendRow([new Date(), cell_(email), cell_(name), activityId, cell_(activity), date, seats, 'active', chat]);
       CacheService.getScriptCache().remove('counts');
       // One email per person/activity/day, so join-leave-join doesn't flood the organizer.
       const noteKey = 'n:' + email + '|' + activityId + '|' + date;
@@ -103,6 +109,65 @@ function doPost(e) {
 }
 
 // ---------- helpers ----------
+
+function suggest_(b) {
+  const kind = b.kind === 'movie' ? 'movie' : 'place';
+  const name = clean_(b.name, 120);
+  const when = clean_(b.when, 120);
+  const link = clean_(b.link, 500);
+  const note = clean_(b.note, 500);
+  const email = clean_(b.email, 254).toLowerCase();
+  if (name.length < 2) return { ok: false, error: 'name' };
+  if (link && !/^https?:\/\/\S+$/i.test(link)) return { ok: false, error: 'link' };
+  if (email && !EMAIL_RE.test(email)) return { ok: false, error: 'email' };
+
+  // At most 30 suggestions an hour in total.
+  const cache = CacheService.getScriptCache();
+  const hourKey = 's:' + Utilities.formatDate(new Date(), TZ, 'yyyyMMddHH');
+  const n = parseInt(cache.get(hourKey) || '0', 10);
+  if (n >= 30) return { ok: false, error: 'rate' };
+  cache.put(hourKey, String(n + 1), 3700);
+
+  const lock = LockService.getScriptLock();
+  lock.waitLock(10000);
+  try {
+    suggestSheet_().appendRow([new Date(), kind, cell_(name), cell_(when), cell_(link), cell_(note), cell_(email), 'new']);
+  } finally {
+    lock.releaseLock();
+  }
+  try {
+    MailApp.sendEmail({
+      to: Session.getEffectiveUser().getEmail(),
+      subject: ascii_('[Quebec Hangouts] New ' + kind + ' suggestion: ' + name),
+      body: 'Name: ' + name + '\nWhen: ' + (when || '-') + '\nLink: ' + (link || '-') + '\nNote: ' + (note || '-') +
+            '\nFrom: ' + (email || 'no email given') + '\n\nIt is also in the "suggestions" tab of the Sheet.'
+    });
+  } catch (err) {
+    console.error('suggest mail failed', err);
+  }
+  return { ok: true };
+}
+
+function suggestSheet_() {
+  const ss = SpreadsheetApp.getActiveSpreadsheet();
+  let sh = ss.getSheetByName(SUGGEST_SHEET);
+  if (!sh) {
+    sh = ss.insertSheet(SUGGEST_SHEET);
+    sh.appendRow(SUGGEST_HEADERS);
+    sh.setFrozenRows(1);
+  }
+  return sh;
+}
+
+function clean_(v, max) {
+  return String(v == null ? '' : v).replace(/[\u0000-\u001F\u007F]/g, ' ').trim().slice(0, max);
+}
+
+/** Stops text typed by visitors from being read as a spreadsheet formula. */
+function cell_(v) {
+  const s = String(v == null ? '' : v);
+  return /^[=+\-@]/.test(s) ? "'" + s : s;
+}
 
 function sheet_() {
   const ss = SpreadsheetApp.getActiveSpreadsheet();

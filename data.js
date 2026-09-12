@@ -8,7 +8,14 @@
  *              or periods: [{ from, to, days }] when the pattern changes during the season
  *              dayNotes: { weekday: 'short note' } shows e.g. a start time on that weekday
  *
- * Pictures: img (photo with credit) · board (restaurant chalkboard) · art ('tennis' | 'badminton' | 'rink' | 'gym')
+ * Pictures: img (photo with credit) · board (restaurant chalkboard) · art ('tennis' | 'badminton' | 'rink' | 'gym' | 'boulder')
+ *
+ * dice (for "Roll the dice"; leave it out to keep a card out of the dice):
+ *   tier    0 free · 1 up to $25 · 2 up to $75 · 3 more (cheapest usual price per person; restaurants use their own $ signs)
+ *   hours   rough time needed, getting there included · weekend: true for trips that need a weekend
+ *   day / evening   true, false, or [weekdays] when only some days are open that part of the day
+ *   car     true if you realistically need a car
+ *   dates-type schedules can set part: 'day' | 'evening' on each date
  *   'dates'  → dates: [{ date, note }]
  */
 window.QH_DATA = {
@@ -40,6 +47,7 @@ window.QH_DATA = {
         ['Booking', 'Each person books their own ticket with Navette Nature. Full refund if you cancel 14 days before.'],
         ['Heads-up', 'Sept 20–27: street closures around the bus station for the cycling world championships. Leave extra time.']
       ],
+      dice: { tier: 2, hours: 9, day: true, evening: false, car: false },
       schedule: { type: 'dates', endedNote: 'No more trips listed this season.', dates: [{ date: '2026-09-19', note: '8:30 bus' }, { date: '2026-09-27', note: '8:30 bus' }] },
       sources: [
         { label: 'Navette Nature · Oka apple trip 2026 (prices, schedule)', url: 'https://navettenature.zaui.net/booking/web/#/default/activity/398' },
@@ -61,6 +69,7 @@ window.QH_DATA = {
         ['Booking', 'Each person books their own ticket with Navette Nature. Full refund if you cancel 14 days before.'],
         ['Heads-up', 'Sept 20–27: street closures around the bus station for the cycling world championships. Leave extra time.']
       ],
+      dice: { tier: 2, hours: 12, day: true, evening: false, car: false },
       schedule: { type: 'dates', endedNote: 'No more trips listed this season.', dates: [{ date: '2026-09-19', note: '8:00 bus' }, { date: '2026-09-27', note: '8:00 bus' }] },
       sources: [
         { label: 'Navette Nature · Mont-Tremblant trip 2026 (prices, schedule)', url: 'https://navettenature.zaui.net/booking/web/#/default/activity/387' },
@@ -82,6 +91,7 @@ window.QH_DATA = {
         ['Booking', 'Each person books their own ticket with Navette Nature. Full refund if you cancel 14 days before.'],
         ['Heads-up', 'Sept 20–27: street closures around the bus station for the cycling world championships. Leave extra time.']
       ],
+      dice: { tier: 2, hours: 10, day: true, evening: false, car: false },
       schedule: { type: 'dates', endedNote: 'No more trips listed this season.', dates: [{ date: '2026-09-26', note: '8:30 bus' }] },
       sources: [
         { label: 'Navette Nature · Mont-Orford trip 2026 (prices, schedule)', url: 'https://navettenature.zaui.net/booking/web/#/default/activity/399' },
@@ -104,6 +114,7 @@ window.QH_DATA = {
         ['Getting there', 'Bus 11 crosses the park · Beaver Lake pavilion, 2000 chemin Remembrance'],
         ['Heads-up', 'Until Oct 4, Avenue du Parc is closed at the foot of the mountain for the cycling world championships (races Sept 19–27).']
       ],
+      dice: { tier: 0, hours: 2, day: true, evening: true, car: false },
       schedule: { type: 'weekly', days: [0, 1, 2, 3, 4, 5, 6] },
       sources: [
         { label: 'Ville de Montréal · Parc du Mont-Royal (hours, parking)', url: 'https://montreal.ca/en/places/parc-du-mont-royal' },
@@ -125,6 +136,7 @@ window.QH_DATA = {
         ['Biosphère', 'Separate museum ticket: students 18+ $19, adults $25.50 (2026)'],
         ['Getting there', [{ metro: 'yellow', station: 'Jean-Drapeau' }, ' · fare zone A']]
       ],
+      dice: { tier: 0, hours: 2, day: true, evening: true, car: false },
       schedule: { type: 'weekly', days: [0, 1, 2, 3, 4, 5, 6] },
       sources: [
         { label: 'Parc Jean-Drapeau · FAQ (hours)', url: 'https://www.parcjeandrapeau.com/en/faq/' },
@@ -146,6 +158,7 @@ window.QH_DATA = {
         ['Trails', 'Open every day, 8:00–18:00 in daylight-saving time, 8:00–16:00 in winter'],
         ['Getting there', '422 chemin des Moulins, Mont-Saint-Hilaire. Bus 200, exo on-demand 361 and a train are listed; carpooling is simplest.']
       ],
+      dice: { tier: 1, hours: 5, day: true, evening: false, car: true },
       schedule: { type: 'weekly', days: [0, 1, 2, 3, 4, 5, 6] },
       sources: [
         { label: 'Gault Nature Reserve · Outdoor activities (prices, hours, rules)', url: 'https://gault.mcgill.ca/en/outdoor-activities/' },
@@ -168,6 +181,7 @@ window.QH_DATA = {
         ['Getting there', 'Trailhead at Le Pin-Blanc campground (km 6). The park is 170 km from Québec City; in summer a mandatory shuttle runs between its two visitor centres.'],
         ['Park entry', 'Sépaq day access, $10.30 per adult']
       ],
+      dice: { tier: 1, hours: 0, weekend: true, day: true, evening: false, car: true },
       schedule: { type: 'weekly', days: [0, 1, 2, 3, 4, 5, 6] },
       sources: [
         { label: 'Sépaq · Hautes-Gorges hiking trails', url: 'https://www.sepaq.com/pq/hgo/annexes/sentiers_pedestre.dot?language_id=1' },
@@ -190,6 +204,7 @@ window.QH_DATA = {
         ['Getting there', '592 chemin du lac Croche, Saint-Hippolyte. No transit stop on this road, so we carpool.'],
         ['Booking', 'Call 450-563-3111 (ext. 1) or email sbl@iro.umontreal.ca. Groups of more than 20 must book by email.']
       ],
+      dice: { tier: 1, hours: 8, day: true, evening: false, car: true },
       schedule: { type: 'weekly', days: [0, 1, 2, 3, 4, 5, 6], to: '2026-11-01', endedNote: 'Closed for the season after November 1.' },
       sources: [
         { label: 'SBL · Plan your visit', url: 'https://sbl.umontreal.ca/planifier-votre-visite/' },
@@ -217,6 +232,7 @@ window.QH_DATA = {
         ['Lines', 'No reservations for the ramen side. The shop suggests 17:00–18:00 or 20:30–21:45 for a shorter wait.'],
         ['Where', ['4185 rue Drolet · ', { metro: 'orange', station: 'Mont-Royal' }]]
       ],
+      dice: { tier: 2, hours: 2, day: true, evening: true, car: false },
       schedule: { type: 'weekly', days: [0, 1, 2, 3, 4, 5, 6] },
       sources: [
         { label: 'Yokato Yokabai · official site (hours, menu, reservations)', url: 'https://yoka.ca/' },
@@ -237,6 +253,7 @@ window.QH_DATA = {
         ['Hours', 'Not posted online. Confirm the day when you call.'],
         ['Where', '46 rue Saint-Joseph Est, Québec (Saint-Roch)']
       ],
+      dice: { tier: 3, hours: 12, car: false },
       schedule: { type: 'weekly', days: [0, 1, 2, 3, 4, 5, 6] },
       sources: [
         { label: 'L’Affaire est Ketchup · Facebook page (address, phone, price, reservations)', url: 'https://www.facebook.com/laffaireest.ketchup/' },
@@ -259,6 +276,7 @@ window.QH_DATA = {
         ['Booking', 'Reserve up to 2 days ahead, from 19:00: CEPSUM online portal, 514-343-6150, or the front desk'],
         ['Season', 'Free skating runs September to April']
       ],
+      dice: { tier: 0, hours: 2, day: true, evening: false, car: false },
       schedule: { type: 'weekly', days: [0, 3, 5], to: '2026-12-20', dayNotes: { 3: '12:05', 5: '16:15', 0: '11:55' }, endedNote: 'The fall skating schedule ended December 20. Check CEPSUM for the winter times.' },
       sources: [
         { label: 'CEPSUM · Pratique libre (Patinage: prices, times, booking)', url: 'https://www.cepsum.umontreal.ca/pratique-libre' }
@@ -278,6 +296,7 @@ window.QH_DATA = {
         ['Booking', 'Up to 2 days ahead, from 19:00: CEPSUM online portal, 514-343-6150, or the front desk'],
         ['Gear', 'Equipment rental is available at CEPSUM']
       ],
+      dice: { tier: 0, hours: 2, day: true, evening: true, car: false },
       schedule: { type: 'weekly', days: [0, 1, 2, 3, 4, 5, 6] },
       sources: [
         { label: 'CEPSUM · Pratique libre (racquet sports: times, booking)', url: 'https://www.cepsum.umontreal.ca/pratique-libre' },
@@ -298,6 +317,7 @@ window.QH_DATA = {
         ['Booking', 'Up to 2 days ahead, from 19:00: CEPSUM online portal, 514-343-6150, or the front desk'],
         ['Lessons', 'Adult Level 1, fall session from Sept 14: 13–14 sessions of 1 h 15, Mon 17:30, Wed 18:45 or Thu 20:15 · members $280–302']
       ],
+      dice: { tier: 0, hours: 2, day: true, evening: true, car: false },
       schedule: { type: 'weekly', days: [0, 1, 2, 3, 4, 5, 6] },
       sources: [
         { label: 'CEPSUM · Pratique libre (racquet sports: times, booking)', url: 'https://www.cepsum.umontreal.ca/pratique-libre' },
@@ -319,6 +339,7 @@ window.QH_DATA = {
         ['Hours', 'CEPSUM: weekdays 6:30–23:00, weekends 8:30–20:30'],
         ['Crowds', [{ link: 'https://www.cepsum.umontreal.ca/achalandage-salle-d-entrainement', label: 'Live crowd meter' }]]
       ],
+      dice: { tier: 1, hours: 2, day: true, evening: true, car: false },
       schedule: { type: 'weekly', days: [0, 1, 2, 3, 4, 5, 6] },
       sources: [
         { label: 'CEPSUM · Campus students (gym pass prices)', url: 'https://www.cepsum.umontreal.ca/abonnements/etudiants-du-campus' },
@@ -344,6 +365,7 @@ window.QH_DATA = {
         ['Hours', 'Mon–Fri 10:00–23:00 · Sat–Sun 9:00–21:00'],
         ['Where', '6595A rue Saint-Urbain, Mile-Ex']
       ],
+      dice: { tier: 1, hours: 3, day: true, evening: true, car: false },
       schedule: { type: 'weekly', days: [5], dayNotes: { 5: 'evening' } },
       sources: [
         { label: 'Bloc Shop · Rates (Vendredix, day passes, rentals, hours)', url: 'https://blocshop.com/tarifs/' },
@@ -367,6 +389,7 @@ window.QH_DATA = {
         ['Getting there', ['859 Sherbrooke St. W · ', { metro: 'green', station: 'McGill' }, ' or ', { metro: 'green', station: 'Peel' }]],
         ['Good to know', 'Groups of 7 or more must reserve ahead and pay a group fee. No elevator, no air conditioning, no food in the galleries.']
       ],
+      dice: { tier: 0, hours: 2, day: true, evening: false, car: false },
       schedule: { type: 'weekly', days: [2, 3, 4, 5, 6], to: '2027-06-24', closed: ['2026-10-12'] },
       sources: [
         { label: 'Redpath · Visit (admission, hours)', url: 'https://www.mcgill.ca/redpath/visit' },
@@ -387,6 +410,7 @@ window.QH_DATA = {
         ['Hours', 'Tue 10–17 · Wed 10–21 · Thu–Sun 10–17 · closed Mon'],
         ['Getting there', ['1380 Sherbrooke St. W · ', { metro: 'green', station: 'Peel' }, ' or ', { metro: 'green', station: 'Guy-Concordia' }]]
       ],
+      dice: { tier: 2, hours: 3, day: true, evening: [3], car: false },
       schedule: { type: 'weekly', days: [0, 2, 3, 4, 5, 6], closed: ['2026-12-25', '2027-01-01'] },
       sources: [
         { label: 'MBAM · Plan your visit (hours, prices, first Sundays)', url: 'https://www.mbam.qc.ca/fr/renseignements/planifiez-votre-visite/' }
@@ -406,6 +430,7 @@ window.QH_DATA = {
         ['Hours', 'Tue 10–17 · Wed 10–21 · Thu–Sun 10–17 · closed Mon (open Mon Oct 12)'],
         ['Getting there', [{ metro: 'green', station: 'McGill' }, ' · bus 24']]
       ],
+      dice: { tier: 1, hours: 2, day: true, evening: [3], car: false },
       schedule: { type: 'weekly', days: [0, 2, 3, 4, 5, 6], extraOpen: ['2026-10-12'] },
       sources: [
         { label: 'McCord Stewart · Prices', url: 'https://www.musee-mccord-stewart.ca/fr/tarifs/' },
@@ -425,6 +450,7 @@ window.QH_DATA = {
         ['Hours', 'Tue–Fri 10–17 · Sat–Sun 11–17 · last tickets one hour before closing'],
         ['Getting there', '350 place Royale, Old Montréal']
       ],
+      dice: { tier: 1, hours: 2, day: true, evening: false, car: false },
       schedule: { type: 'weekly', days: [0, 2, 3, 4, 5, 6] },
       sources: [
         { label: 'Pointe-à-Callière · Hours and prices', url: 'https://pacmusee.qc.ca/fr/planifiez-votre-visite/horaires-et-tarifs/' }
@@ -446,6 +472,7 @@ window.QH_DATA = {
         ['Good to know', 'Rain or shine'],
         ['Getting there', ['4101 Sherbrooke St. E · ', { metro: 'green', station: 'Pie-IX' }]]
       ],
+      dice: { tier: 1, hours: 3, day: false, evening: true, car: false },
       schedule: { type: 'weekly', days: [0, 1, 2, 3, 4, 5, 6], to: '2026-11-01', endedNote: 'Gardens of Light ended on November 1.' },
       sources: [
         { label: 'Espace pour la vie · Gardens of Light (dates, hours, tickets)', url: 'https://calendrier.espacepourlavie.ca/gardens-of-light' },
@@ -466,13 +493,14 @@ window.QH_DATA = {
         ['Tailgate', 'On the CEPSUM terrace near the arena from 3 hours before kickoff; free BBQ grills for your own food; cans OK, no glass'],
         ['Getting there', ['2100 boul. Édouard-Montpetit · ', { metro: 'blue', station: 'Édouard-Montpetit' }, ' · parking is very limited']]
       ],
+      dice: { tier: 1, hours: 4, car: false },
       schedule: {
         type: 'dates', endedNote: 'No home games left this season.',
         dates: [
-          { date: '2026-09-18', note: 'vs Sherbrooke · 19:00' },
-          { date: '2026-10-03', note: 'vs Concordia · 13:00' },
-          { date: '2026-10-16', note: 'vs Laval · 19:00' },
-          { date: '2026-10-31', note: 'Semi-final · 14:00' }
+          { date: '2026-09-18', part: 'evening', note: 'vs Sherbrooke · 19:00' },
+          { date: '2026-10-03', part: 'day', note: 'vs Concordia · 13:00' },
+          { date: '2026-10-16', part: 'evening', note: 'vs Laval · 19:00' },
+          { date: '2026-10-31', part: 'day', note: 'Semi-final · 14:00' }
         ]
       },
       sources: [
@@ -493,6 +521,7 @@ window.QH_DATA = {
         ['Where', ['Mostly Salle Claude-Champagne, 200 av. Vincent-d’Indy · ', { metro: 'blue', station: 'Édouard-Montpetit' }]],
         ['Other venues', 'Oct 22 and Jan 14: Église Saint-Viateur d’Outremont · Oct 23 and Jan 15: Salle Serge-Garant (B-484)']
       ],
+      dice: { tier: 0, hours: 2, day: false, evening: true, car: false },
       schedule: {
         type: 'dates', endedNote: 'No more free concerts listed this season.',
         dates: [
@@ -527,6 +556,7 @@ window.QH_DATA = {
         ['Dec 16–Jan 3', 'Every day 15:00–22:00 · Dec 21–23 from 11:00 · Dec 24–25 11:00–19:00'],
         ['Where', 'Jeanne-Mance Street, Quartier des spectacles']
       ],
+      dice: { tier: 0, hours: 2, day: [0, 6], evening: true, car: false },
       schedule: {
         type: 'weekly', endedNote: 'The market closed on January 3.',
         periods: [
@@ -574,6 +604,7 @@ window.QH_DATA = {
         ['Season', 'Versant du Village planned to open Friday Dec 4; day and evening, 7 days a week'],
         ['Good to know', 'Taxes extra. Bring proof of age or student status. Rates are for 2026–27.']
       ],
+      dice: { tier: 2, hours: 10, day: true, evening: true, car: true },
       schedule: { type: 'weekly', days: [0, 1, 2, 3, 4, 5, 6], from: '2026-12-04' },
       sources: [
         { label: 'Bromont · Ski tickets 2026–27', url: 'https://www.bromontmontagne.com/en/ski-tickets/' },
@@ -594,6 +625,7 @@ window.QH_DATA = {
         ['High season', 'Dec 27–Jan 2, Feb 13–19, and every Fri–Sun in January, February and March'],
         ['Good to know', 'Royalty and taxes extra. No student category.']
       ],
+      dice: { tier: 3, hours: 12, day: true, evening: false, car: true },
       schedule: { type: 'weekly', days: [0, 1, 2, 3, 4, 5, 6], from: '2026-11-26', to: '2027-04-18', closed: ['2026-12-25', '2027-01-01'] },
       sources: [
         { label: 'Tremblant · 2026/27 winter lift tickets', url: 'https://www.tremblant.ca/plan/tickets-and-passes/winter-lift-tickets' },
@@ -601,6 +633,13 @@ window.QH_DATA = {
       ]
     }
   ],
+
+  // Movie night: filters for the movie dice. Add films to MOVIES; each needs a source link.
+  MOVIE_COUNTRIES: ['USA', 'UK', 'France', 'Canada', 'Japan', 'South Korea', 'Mainland China', 'Hong Kong', 'Taiwan', 'India', 'Spain', 'Italy', 'Germany', 'Other'],
+  MOVIE_DECADES: [2020, 2010, 2000, 1990, 1980, 1970, 1960, 1950],
+  MOVIE_GENRES: ['Comedy', 'Drama', 'Romance', 'Horror', 'Thriller', 'Sci-fi', 'Action', 'Animation', 'Documentary', 'Crime', 'Fantasy', 'Family'],
+  // { title: 'English title', original: 'Original title', year: 1999, countries: ['USA'], genres: ['Drama'], minutes: 120, link: 'https://…' }
+  MOVIES: [],
 
   DEALS: [
     { name: 'Student transit pass (STM)', what: '$66 a month instead of $110 for the zone A all-modes monthly pass.', who: 'Full-time students aged 6–64 at a Québec-recognized school, with a photo OPUS card ($15 online).', url: 'https://www.stm.info/fr/tarifs/carte-opus-et-autres-supports/opus-tarif-reduit-etudiants' },

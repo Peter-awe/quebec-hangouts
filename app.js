@@ -5,7 +5,7 @@
   const TZ = 'America/Montreal';
   const DAYS_SHOWN = 10;
   const LOOKAHEAD_DAYS = 150;
-  const { ACTIVITIES, CATEGORIES, DEALS, CHECKED } = window.QH_DATA;
+  const { ACTIVITIES, CATEGORIES, DEALS, CHECKED, MOVIES, MOVIE_COUNTRIES, MOVIE_DECADES, MOVIE_GENRES } = window.QH_DATA;
 
   // ---------- storage (never throws) ----------
   const store = {
@@ -24,7 +24,8 @@
     mine: new Set(store.get('qh.mine', [])),
     filter: 'all',
     busy: new Set(),
-    pending: null
+    pending: null,
+    apiVersion: 0
   };
 
   // ---------- dates (all as yyyy-mm-dd strings, Montréal time) ----------
@@ -307,10 +308,12 @@
       const res = await fetch(API, { cache: 'no-store' });
       const data = await res.json();
       if (!data.ok) throw new Error(data.error || 'bad');
+      state.apiVersion = data.version || 1;
       return data.counts || {};
     } catch (e) {
       const data = await jsonp(API);
       if (!data || !data.ok) throw new Error('bad');
+      state.apiVersion = data.version || 1;
       return data.counts || {};
     }
   }
@@ -325,6 +328,7 @@
     }
     renderUpcoming();
     renderGroups();
+    renderSuggestAvailability();
   }
 
   const ERRORS = {
@@ -429,6 +433,262 @@
   document.getElementById('join-cancel').addEventListener('click', () => { state.pending = null; dlg.close(); });
   f.email.addEventListener('input', () => f.email.setCustomValidity(''));
 
+  // ---------- roll the dice (outings) ----------
+  const TIERS = [
+    { v: 0, label: 'Free', hint: '$0' },
+    { v: 1, label: '$', hint: 'up to $25' },
+    { v: 2, label: '$$', hint: 'up to $75' },
+    { v: 3, label: '$$$', hint: 'no limit' }
+  ];
+  const dice = Object.assign({ when: 'weekend', date: '', part: 'either', hours: 4, weekend: false, tier: 2, noCar: false }, store.get('qh.dice', {}));
+
+  function weekendDates() {
+    const dow = toUTC(todayISO).getUTCDay();
+    if (dow === 6) return [todayISO, addDays(todayISO, 1)];
+    if (dow === 0) return [todayISO];
+    return [addDays(todayISO, 6 - dow), addDays(todayISO, 7 - dow)];
+  }
+
+  function diceDates() {
+    if (dice.when === 'today') return [todayISO];
+    if (dice.when === 'tomorrow') return [addDays(todayISO, 1)];
+    if (dice.when === 'weekend') return weekendDates();
+    return dice.date && dice.date >= todayISO ? [dice.date] : [];
+  }
+
+  // Is this part of the day ('day' | 'evening') possible for this activity on this date?
+  function partOk(act, iso, part) {
+    const d = act.dice;
+    if (d.day === undefined && d.evening === undefined && !(act.schedule.dates || []).some((x) => x.part)) return part === 'either';
+    const check = (p) => {
+      if (act.schedule.type === 'dates') {
+        const entry = act.schedule.dates.find((x) => x.date === iso);
+        if (entry && entry.part) return entry.part === p;
+      }
+      const v = d[p];
+      return Array.isArray(v) ? v.includes(toUTC(iso).getUTCDay()) : !!v;
+    };
+    return part === 'either' ? check('day') || check('evening') : check(part);
+  }
+
+  function diceMatches() {
+    const dates = diceDates();
+    return ACTIVITIES.filter((a) => a.dice).map((act) => {
+      const d = act.dice;
+      if (d.tier > dice.tier) return null;
+      if (dice.noCar && d.car) return null;
+      if (d.weekend && !dice.weekend) return null;
+      if (!dice.weekend && d.hours > dice.hours) return null;
+      const ok = dates.filter((iso) => openOn(act, iso) && partOk(act, iso, dice.part));
+      return ok.length ? { act, dates: ok } : null;
+    }).filter(Boolean);
+  }
+
+  function seg(name, options, current, onPick) {
+    return el('div', { class: 'seg', role: 'radiogroup' }, options.map((o) =>
+      el('label', {},
+        el('input', { type: 'radio', name, value: String(o.v), checked: String(current) === String(o.v), onchange: () => onPick(o.v) }),
+        el('span', {}, o.label, o.hint ? el('small', { text: ' ' + o.hint }) : null))));
+  }
+
+  function renderDice() {
+    const root = document.getElementById('dice-form');
+    root.replaceChildren();
+    const save = () => { store.set('qh.dice', dice); renderDice(); };
+
+    const dateInput = el('input', { type: 'date', min: todayISO, value: dice.date, 'aria-label': 'Pick a date',
+      onchange: (ev) => { dice.date = ev.target.value; dice.when = 'date'; save(); } });
+    const hours = el('input', { type: 'range', min: '1', max: '12', step: '1', value: String(dice.hours), disabled: dice.weekend, 'aria-label': 'Hours you have',
+      oninput: (ev) => { dice.hours = +ev.target.value; hoursOut.textContent = hoursLabel(); countOut.textContent = countLabel(); },
+      onchange: () => save() });
+    const hoursLabel = () => dice.weekend ? 'A whole weekend' : 'Up to ' + dice.hours + (dice.hours === 1 ? ' hour' : ' hours');
+    const hoursOut = el('output', { class: 'dice-out', text: hoursLabel() });
+    const countLabel = () => { const n = diceMatches().length; return n + (n === 1 ? ' place fits' : ' places fit'); };
+    const countOut = el('span', { class: 'dice-count', 'aria-live': 'polite', text: countLabel() });
+
+    root.append(
+      el('fieldset', { class: 'dice-field' }, el('legend', { text: 'When' }),
+        seg('d-when', [{ v: 'today', label: 'Today' }, { v: 'tomorrow', label: 'Tomorrow' }, { v: 'weekend', label: 'This weekend' }, { v: 'date', label: 'Pick a date' }],
+          dice.when, (v) => { dice.when = v; save(); }),
+        dice.when === 'date' ? dateInput : null),
+      el('fieldset', { class: 'dice-field' }, el('legend', { text: 'Time of day' }),
+        seg('d-part', [{ v: 'day', label: 'Daytime' }, { v: 'evening', label: 'Evening' }, { v: 'either', label: 'Either' }],
+          dice.part, (v) => { dice.part = v; save(); })),
+      el('fieldset', { class: 'dice-field' }, el('legend', { text: 'Time you have' }),
+        el('div', { class: 'dice-hours' }, hours, hoursOut),
+        el('label', { class: 'check' }, el('input', { type: 'checkbox', checked: dice.weekend, onchange: (ev) => { dice.weekend = ev.target.checked; save(); } }), ' I have a whole weekend')),
+      el('fieldset', { class: 'dice-field' }, el('legend', { text: 'Budget per person' }),
+        seg('d-tier', TIERS, dice.tier, (v) => { dice.tier = v; save(); }),
+        el('label', { class: 'check' }, el('input', { type: 'checkbox', checked: dice.noCar, onchange: (ev) => { dice.noCar = ev.target.checked; save(); } }), ' No car')),
+      el('div', { class: 'dice-go' },
+        countOut,
+        el('button', { class: 'btn roll', type: 'button', onclick: rollOuting }, dieIcon(), 'Roll the dice'))
+    );
+  }
+
+  function dieIcon() {
+    const s = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
+    s.setAttribute('viewBox', '0 0 24 24'); s.setAttribute('aria-hidden', 'true'); s.classList.add('die');
+    s.innerHTML = '<rect x="3" y="3" width="18" height="18" rx="4" fill="none" stroke="currentColor" stroke-width="2"/><circle cx="8" cy="8" r="1.6" fill="currentColor"/><circle cx="16" cy="16" r="1.6" fill="currentColor"/><circle cx="12" cy="12" r="1.6" fill="currentColor"/><circle cx="16" cy="8" r="1.6" fill="currentColor"/><circle cx="8" cy="16" r="1.6" fill="currentColor"/>';
+    return s;
+  }
+
+  function spin(btn) {
+    const die = btn.querySelector('.die');
+    if (die && !window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
+      die.classList.remove('spinning'); void die.getBoundingClientRect(); die.classList.add('spinning');
+    }
+  }
+
+  function pickOne(list) { return list[Math.floor(Math.random() * list.length)]; }
+
+  function rollOuting(ev) {
+    spin(ev.currentTarget);
+    const out = document.getElementById('dice-result');
+    const matches = diceMatches();
+    out.replaceChildren();
+    if (!matches.length) {
+      out.append(el('p', { class: 'dice-empty', text: 'Nothing fits all of that. Try a bigger budget, more time, or another day.' }));
+      return;
+    }
+    const prev = out.dataset.last;
+    const pool = matches.length > 1 ? matches.filter((m) => m.act.id !== prev) : matches;
+    const { act, dates } = pickOne(pool);
+    out.dataset.last = act.id;
+    const d = act.dice;
+    const chips = [
+      dates.map((iso) => longDate(iso)).join(' or '),
+      dice.part === 'either' ? null : dice.part === 'day' ? 'Daytime' : 'Evening',
+      d.weekend ? 'Weekend trip' : '~' + d.hours + ' h',
+      TIERS[d.tier].label,
+      d.car ? 'Car needed' : null
+    ].filter(Boolean);
+    out.append(el('div', { class: 'dice-card' },
+      el('p', { class: 'section-label', text: 'The dice say' }),
+      el('h3', { text: act.name }),
+      act.local ? el('p', { class: 'local', text: act.local }) : null,
+      el('div', { class: 'eyebrow' }, chips.map((c) => el('span', { class: 'tag', text: c }))),
+      el('p', { class: 'blurb', text: act.blurb }),
+      el('div', { class: 'dice-actions' },
+        el('button', { class: 'btn', type: 'button', text: 'See details and dates',
+          onclick: () => { state.filter = 'all'; renderFilters(); renderGroups(); document.getElementById('act-' + act.id).scrollIntoView({ behavior: 'smooth', block: 'start' }); } }),
+        el('button', { class: 'btn ghost', type: 'button', onclick: rollOuting }, dieIcon(), 'Roll again'))
+    ));
+  }
+
+  // ---------- movie night ----------
+  const movie = Object.assign({ country: '', decade: '', genre: '' }, store.get('qh.movie', {}));
+
+  function movieMatches() {
+    return MOVIES.filter((m) =>
+      (!movie.country || (m.countries || []).includes(movie.country)) &&
+      (!movie.decade || Math.floor(m.year / 10) * 10 === +movie.decade || (movie.decade === 'earlier' && m.year < Math.min(...MOVIE_DECADES))) &&
+      (!movie.genre || (m.genres || []).includes(movie.genre)));
+  }
+
+  function renderMovies() {
+    const root = document.getElementById('movie-form');
+    root.replaceChildren();
+    const select = (label, key, options) => el('label', { class: 'movie-select' }, el('span', { text: label }),
+      el('select', { onchange: (ev) => { movie[key] = ev.target.value; store.set('qh.movie', movie); renderMovies(); } },
+        [el('option', { value: '', text: 'Any' })].concat(options.map((o) => el('option', { value: String(o.v), selected: String(movie[key]) === String(o.v), text: o.label })))));
+    const n = movieMatches().length;
+    root.append(
+      select('Country', 'country', MOVIE_COUNTRIES.map((c) => ({ v: c, label: c }))),
+      select('Decade', 'decade', MOVIE_DECADES.map((y) => ({ v: y, label: y + 's' })).concat([{ v: 'earlier', label: 'Earlier' }])),
+      select('Genre', 'genre', MOVIE_GENRES.map((g) => ({ v: g, label: g }))),
+      el('div', { class: 'dice-go' },
+        el('span', { class: 'dice-count', text: MOVIES.length ? n + (n === 1 ? ' movie fits' : ' movies fit') : 'List coming soon' }),
+        el('button', { class: 'btn roll', type: 'button', disabled: !n, onclick: rollMovie }, dieIcon(), 'Roll a movie'))
+    );
+    const out = document.getElementById('movie-result');
+    if (!MOVIES.length && !out.childElementCount) {
+      out.append(el('div', { class: 'dice-empty' },
+        el('p', { text: 'The movie list is brand new and still empty. Tell us a film you love and it’ll be added.' }),
+        el('button', { class: 'btn ghost', type: 'button', text: 'Suggest a movie', onclick: () => openSuggest('movie') })));
+    }
+  }
+
+  function rollMovie(ev) {
+    spin(ev.currentTarget);
+    const list = movieMatches();
+    const out = document.getElementById('movie-result');
+    out.replaceChildren();
+    if (!list.length) { out.append(el('p', { class: 'dice-empty', text: 'No movie fits those filters yet. Loosen one of them.' })); return; }
+    const m = pickOne(list);
+    out.append(el('div', { class: 'dice-card' },
+      el('p', { class: 'section-label', text: 'Tonight you’re watching' }),
+      el('h3', { text: m.title }),
+      m.original && m.original !== m.title ? el('p', { class: 'local', text: m.original }) : null,
+      el('div', { class: 'eyebrow' }, [String(m.year)].concat(m.countries || [], m.genres || [], m.minutes ? [m.minutes + ' min'] : []).map((c) => el('span', { class: 'tag', text: c }))),
+      m.link ? el('p', {}, el('a', { href: m.link, target: '_blank', rel: 'noopener' }, 'About this film')) : null,
+      el('div', { class: 'dice-actions' }, el('button', { class: 'btn ghost', type: 'button', onclick: rollMovie }, dieIcon(), 'Roll again'))
+    ));
+  }
+
+  // ---------- suggestions ----------
+  const sdlg = document.getElementById('suggest-dialog');
+  const sform = document.getElementById('suggest-form');
+  const sf = {
+    name: document.getElementById('s-name'), when: document.getElementById('s-when'), link: document.getElementById('s-link'),
+    note: document.getElementById('s-note'), email: document.getElementById('s-email'), website: document.getElementById('s-website')
+  };
+  let suggestKind = 'place';
+
+  function renderSuggestAvailability() {
+    const ready = state.apiVersion >= 3;
+    document.querySelectorAll('[data-suggest]').forEach((b) => { b.disabled = !ready; b.title = ready ? '' : 'Opening in a moment'; });
+    const note = document.getElementById('suggest-soon');
+    if (note) note.hidden = ready || !state.countsLoaded;
+  }
+
+  function openSuggest(kind) {
+    if (state.apiVersion < 3) { toast('Suggestions open once the sign-up sheet finishes updating. Try again a bit later.', true); return; }
+    suggestKind = kind === 'movie' ? 'movie' : 'place';
+    document.getElementById('suggest-title').textContent = suggestKind === 'movie' ? 'Suggest a movie' : 'Suggest a place';
+    document.getElementById('s-name-label').firstChild.textContent = suggestKind === 'movie' ? 'Movie title ' : 'Place or activity ';
+    document.getElementById('s-when-label').firstChild.textContent = suggestKind === 'movie' ? 'Year ' : 'Rough time ';
+    sf.when.placeholder = suggestKind === 'movie' ? 'e.g. 1994' : 'e.g. Saturdays in October, or all winter';
+    sf.name.value = ''; sf.when.value = ''; sf.link.value = ''; sf.note.value = ''; sf.website.value = '';
+    sf.email.value = (state.profile && state.profile.email) || '';
+    if (typeof sdlg.showModal === 'function') sdlg.showModal(); else sdlg.setAttribute('open', '');
+    sf.name.focus();
+  }
+
+  sform.addEventListener('submit', async (ev) => {
+    ev.preventDefault();
+    const payload = { action: 'suggest', kind: suggestKind, name: sf.name.value.trim(), when: sf.when.value.trim(), link: sf.link.value.trim(), note: sf.note.value.trim(), email: sf.email.value.trim(), website: sf.website.value };
+    if (payload.name.length < 2) { sf.name.setCustomValidity('Give it a name'); sf.name.reportValidity(); return; }
+    if (payload.link && !/^https?:\/\/\S+$/i.test(payload.link)) { sf.link.setCustomValidity('Links start with http:// or https://'); sf.link.reportValidity(); return; }
+    if (payload.email && !/^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(payload.email)) { sf.email.setCustomValidity('Enter an email like name@example.com, or leave it empty'); sf.email.reportValidity(); return; }
+    const btn = document.getElementById('suggest-submit');
+    btn.disabled = true; btn.textContent = 'Sending…';
+    const body = JSON.stringify(payload);
+    try {
+      let data;
+      try {
+        const res = await fetch(API, { method: 'POST', body });
+        data = await res.json();
+      } catch (netErr) {
+        await fetch(API, { method: 'POST', mode: 'no-cors', body });
+        data = { ok: true, unconfirmed: true };
+      }
+      if (!data.ok) throw Object.assign(new Error(data.error), { code: data.error });
+      sdlg.close();
+      toast(data.unconfirmed
+        ? 'Sent. Your browser hid the confirmation, but the suggestion should have reached Peter.'
+        : 'Thanks! Peter gets your suggestion by email and adds it once the details check out.');
+    } catch (e) {
+      const msg = { name: 'Give it a name of at least 2 characters.', link: 'That link doesn’t look right. It should start with https://', email: 'That email doesn’t look right. Fix it or leave it empty.', rate: 'Lots of suggestions just came in. Try again in an hour.' }[e.code];
+      toast(msg || 'Couldn’t send the suggestion. Check your connection and try again.', true);
+    } finally {
+      btn.disabled = false; btn.textContent = 'Send suggestion';
+    }
+  });
+  [sf.name, sf.link, sf.email].forEach((i) => i.addEventListener('input', () => i.setCustomValidity('')));
+  document.getElementById('suggest-cancel').addEventListener('click', () => sdlg.close());
+  document.querySelectorAll('[data-suggest]').forEach((b) => b.addEventListener('click', () => openSuggest(b.dataset.suggest)));
+
   // ---------- toast ----------
   let toastTimer;
   function toast(msg, isErr) {
@@ -458,5 +718,8 @@
   renderGroups();
   renderDeals();
   renderUpcoming();
+  renderDice();
+  renderMovies();
+  renderSuggestAvailability();
   loadCounts();
 })();

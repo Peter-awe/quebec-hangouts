@@ -36,6 +36,11 @@
             <li><span><strong>Leave your email once.</strong> Only headcounts are public.</span></li>
             <li><span><strong>Get a group-chat link.</strong> When a day has company, Peter emails everyone a WhatsApp or WeChat group.</span></li>
           </ol>
+          <nav class="quicklinks" aria-label="Shortcuts">
+            <a href="#dice">Roll the dice</a>
+            <a href="#movies">Movie night</a>
+            <button type="button" class="linkish" data-suggest="place">Suggest a place</button>
+          </nav>
         </div>
       </div>
 
@@ -47,12 +52,41 @@
     </header>
   </div>
 
+  <section class="wrap dice" id="dice" aria-labelledby="dice-title">
+    <div class="dice-head">
+      <h2 class="group-title" id="dice-title">Roll the dice <small>Can’t decide? Set your limits and let chance pick. You don’t need anyone else to go.</small></h2>
+    </div>
+    <div class="dice-panel">
+      <div class="dice-form" id="dice-form"></div>
+      <div class="dice-result" id="dice-result" aria-live="polite">
+        <p class="dice-empty">Your pick shows up here. Time needed is a rough guess, getting there included.</p>
+      </div>
+    </div>
+  </section>
+
   <nav class="filters" aria-label="Filter by category">
     <div class="wrap" id="filter-bar"></div>
   </nav>
 
   <main class="wrap">
     <div id="groups"></div>
+
+    <section class="suggest-band" aria-labelledby="suggest-band-title">
+      <div>
+        <h2 id="suggest-band-title">Know a spot that’s missing?</h2>
+        <p>A restaurant, a hike, a festival, a weird little museum. Send it in. Once the details check out, Peter adds it here and people can sign up for it.</p>
+        <p class="suggest-soon" id="suggest-soon" hidden>Suggestions open once the sign-up sheet finishes updating.</p>
+      </div>
+      <button type="button" class="btn big" data-suggest="place">Suggest a place</button>
+    </section>
+
+    <section class="movies" id="movies" aria-labelledby="movies-title">
+      <h2 class="group-title" id="movies-title">Movie night <small>At home, on your own. Narrow it down, or just roll.</small></h2>
+      <div class="dice-panel">
+        <div class="dice-form movie-form" id="movie-form"></div>
+        <div class="dice-result" id="movie-result" aria-live="polite"></div>
+      </div>
+    </section>
 
     <h2 class="group-title" id="deals-title">Student deals <small>Not outings, just money you can save around Montréal. Check the age limits.</small></h2>
     <div class="deals" id="deals"></div>
@@ -111,6 +145,48 @@
       <div class="dlg-actions">
         <button class="btn ghost" type="button" id="join-cancel">Cancel</button>
         <button class="btn" type="submit" id="join-submit">Save and join</button>
+      </div>
+    </form>
+  </dialog>
+
+  <dialog id="suggest-dialog" aria-labelledby="suggest-title">
+    <form id="suggest-form" class="dlg" novalidate>
+      <h2 id="suggest-title">Suggest a place</h2>
+      <p class="for">Peter reads every suggestion and checks the details before adding it.</p>
+
+      <div class="field">
+        <label for="s-name" id="s-name-label">Place or activity <span class="hint">· required</span></label>
+        <input id="s-name" name="name" type="text" maxlength="120" required>
+      </div>
+
+      <div class="field">
+        <label for="s-when" id="s-when-label">Rough time <span class="hint">· optional</span></label>
+        <input id="s-when" name="when" type="text" maxlength="120">
+      </div>
+
+      <div class="field">
+        <label for="s-link">Link <span class="hint">· optional, e.g. the official site</span></label>
+        <input id="s-link" name="link" type="url" inputmode="url" maxlength="500" placeholder="https://">
+      </div>
+
+      <div class="field">
+        <label for="s-note">Why it’s good <span class="hint">· optional</span></label>
+        <textarea id="s-note" name="note" rows="3" maxlength="500"></textarea>
+      </div>
+
+      <div class="field">
+        <label for="s-email">Your email <span class="hint">· optional, if you want a reply</span></label>
+        <input id="s-email" name="email" type="email" autocomplete="email" inputmode="email" maxlength="254">
+      </div>
+
+      <div class="hp" aria-hidden="true">
+        <label for="s-website">Website</label>
+        <input id="s-website" name="website" type="text" tabindex="-1" autocomplete="off">
+      </div>
+
+      <div class="dlg-actions">
+        <button class="btn ghost" type="button" id="suggest-cancel">Cancel</button>
+        <button class="btn" type="submit" id="suggest-submit">Send suggestion</button>
       </div>
     </form>
   </dialog>

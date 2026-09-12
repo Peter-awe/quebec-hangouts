@@ -190,6 +190,7 @@
   // The date a card's picker has selected: what the visitor tapped, else their earliest plan there.
   function selectedDate(act) {
     const picked = state.selected[act.id];
+    if (picked === '') return null;                 // tapped the selected date again: nothing selected
     if (picked && picked >= todayISO) return picked;
     return [...state.mine.keys()]
       .filter((k) => k.startsWith(act.id + '|'))
@@ -263,11 +264,11 @@
     const mine = state.mine.has(k);
     const selected = d.date === sel;
     const going = !state.countsLoaded ? '' : mine ? 'You’re in' + (n > 1 ? ' +' + (n - 1) : '') : n ? n + ' going' : 'Be first';
-    const label = longDate(d.date) + (d.note ? ', ' + d.note : '') + '. ' + (mine ? 'You’re going.' : n + ' going.') + ' Press to select.';
+    const label = longDate(d.date) + (d.note ? ', ' + d.note : '') + '. ' + (mine ? 'You’re going.' : n + ' going.') + (selected ? ' Selected; press again to unselect.' : ' Press to select.');
     return el('button', {
       type: 'button', class: 'day' + (mine ? ' mine' : '') + (selected ? ' selected' : '') + (state.busy.has(k) ? ' busy' : ''),
       'aria-pressed': String(selected), 'aria-label': label, 'data-key': k,
-      onclick: () => { state.selected[act.id] = d.date; refreshPicker(act); }
+      onclick: () => { state.selected[act.id] = selected ? '' : d.date; refreshPicker(act); }
     },
       el('span', { class: 'dow', text: fmt(d.date, { weekday: 'short' }) }),
       el('span', { class: 'dnum', text: fmt(d.date, { day: 'numeric' }) }),

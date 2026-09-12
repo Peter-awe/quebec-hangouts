@@ -429,7 +429,7 @@
       state.counts = data.counts || state.counts;
       savePlans();
       toast(action === 'join'
-        ? 'You’re in: ' + act.name + ', ' + longDate(iso) + '. Cancel any time from this card or from My plans.'
+        ? 'You’re in: ' + act.name + ', ' + longDate(iso) + '. In 30 minutes you’ll get an email with Peter’s WhatsApp and WeChat. Cancel before then and nothing is sent.'
         : 'You left ' + act.name + ' on ' + longDate(iso) + '.',
         false, { label: 'Undo', run: () => send(act, iso, action === 'join' ? 'leave' : 'join') });
     } catch (e) {
@@ -454,7 +454,9 @@
     for (const k of state.mine.keys()) {
       const [id, date] = k.split('|');
       const act = ACTIVITIES.find((a) => a.id === id);
-      if (!act || date < todayISO) { state.mine.delete(k); pruned = true; continue; }
+      // Drop plans that are past, unknown, or no longer on the sheet (headcount 0 means nobody, you included).
+      const goneFromSheet = state.countsLoaded && !state.countsFailed && !state.busy.has(k) && !(state.counts[k] > 0);
+      if (!act || date < todayISO || goneFromSheet) { state.mine.delete(k); pruned = true; continue; }
       plans.push({ k, act, date });
     }
     if (pruned) savePlans();

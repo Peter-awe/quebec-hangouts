@@ -45,7 +45,7 @@
           <ol class="steps">
             <li><span><strong>Tap a day, then Confirm</strong> on anything below that looks fun.</span></li>
             <li><span><strong>Leave your email once.</strong> Only headcounts are public.</span></li>
-            <li><span><strong>Get a group-chat link.</strong> When a day has company, Peter emails everyone a WhatsApp or WeChat group.</span></li>
+            <li><span><strong>Get Peter’s contact.</strong> 30 minutes after you confirm, an email brings his WhatsApp and WeChat so he can add you to the group chat.</span></li>
           </ol>
           <nav class="quicklinks" aria-label="Shortcuts">
             <a href="#dice">Roll the dice</a>
@@ -63,24 +63,24 @@
     </header>
   </div>
 
-  <section class="wrap dice" id="dice" aria-labelledby="dice-title">
-    <div class="dice-head">
-      <h2 class="group-title" id="dice-title">Roll the dice <small>Can’t decide? Set your limits and let chance pick. You don’t need anyone else to go.</small></h2>
-    </div>
-    <div class="dice-panel">
-      <div class="dice-form" id="dice-form"></div>
-      <div class="dice-result" id="dice-result" aria-live="polite">
-        <p class="dice-empty">Your pick shows up here. Time needed is a rough guess, getting there included.</p>
-      </div>
-    </div>
-  </section>
-
   <nav class="filters" aria-label="Filter by category">
     <div class="wrap" id="filter-bar"></div>
   </nav>
 
   <main class="wrap">
     <div id="groups"></div>
+
+    <section class="dice" id="dice" aria-labelledby="dice-title">
+      <div class="dice-head">
+        <h2 class="group-title" id="dice-title">Still can’t decide? <small>Roll the dice: set your time and budget and let chance pick. You don’t need anyone else to go.</small></h2>
+      </div>
+      <div class="dice-panel">
+        <div class="dice-form" id="dice-form"></div>
+        <div class="dice-result" id="dice-result" aria-live="polite">
+          <p class="dice-empty">Your pick shows up here. Time needed is a rough guess, getting there included.</p>
+        </div>
+      </div>
+    </section>
 
     <section class="suggest-band" aria-labelledby="suggest-band-title">
       <div>
@@ -105,7 +105,7 @@
     <footer class="foot">
       <p>These are informal, self-organized outings. Everyone pays their own way and looks after their own safety.</p>
       <p>Prices, hours and dates were checked on the official sites on <span id="checked-date"></span>. They can change, so open the source link on a card before you go.</p>
-      <p>Your email goes only to a private sign-up sheet and is used only to send you the group-chat link. This page shows headcounts, never names or emails.</p>
+      <p>Your email goes only to a private sign-up sheet and is used only to send you the organizer’s contact for the group chat. This page shows headcounts, never names or emails.</p>
       <p>Fall colour forecast from <a href="https://bonjourquebec.com/en-ca/blog/tips/fall-colours-peak-forecasts" target="_blank" rel="noopener">Bonjour Québec</a> (updated August 19, 2026).</p>
       <p>Photos from Wikimedia Commons; each photo’s author and license is linked on the photo.</p>
     </footer>
@@ -117,7 +117,7 @@
       <p class="for" id="join-for"></p>
 
       <div class="field">
-        <label for="f-email">Email <span class="hint">· required, so Peter can send you the group link</span></label>
+        <label for="f-email">Email <span class="hint">· required: you’ll get Peter’s WhatsApp and WeChat here</span></label>
         <input id="f-email" name="email" type="email" autocomplete="email" inputmode="email" required>
       </div>
 

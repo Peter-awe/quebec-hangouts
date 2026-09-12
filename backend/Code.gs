@@ -6,11 +6,14 @@
  *
  * Public GET  → headcounts only: { ok, today, counts: { "<activityId>|<yyyy-mm-dd>": n } } (JSONP with ?callback=)
  * Public POST → join / leave one activity on one date, or suggest a place / movie.
- * Trigger     → sendPendingNotifications() every 5 minutes (installed by setup()).
+ * Trigger     → sendPendingNotifications() every 5 minutes (installed by setup()): 30 minutes after a
+ *               sign-up that wasn't cancelled, emails the participant Peter's contact and the organizer a summary.
+ * QR.gs       → optional second file with Peter's WhatsApp / WeChat QR images and links (kept out of git).
  *               Emails stay in the Sheet; they are never returned to the page.
  */
 
-const VERSION = 4;
+const VERSION = 5;
+const SITE = 'https://peter-awe.github.io/quebec-hangouts/';
 const SHEET_NAME = 'signups';
 const SUGGEST_SHEET = 'suggestions';
 const SUGGEST_HEADERS = ['Timestamp', 'Kind', 'Name', 'When', 'Link', 'Note', 'Email', 'Status'];
@@ -37,9 +40,10 @@ function setup() {
 }
 
 /**
- * Runs every 5 minutes. Emails the organizer about sign-ups that are at least NOTIFY_DELAY_MIN old
- * and still active: one email per activity and date. Sign-ups cancelled in the meantime are skipped.
- * Only rows marked 'pending' are considered, so rows from older versions are never re-sent.
+ * Runs every 5 minutes (and at most every 2 minutes on page loads, as a backup).
+ * For sign-ups at least NOTIFY_DELAY_MIN old and still active: emails each participant a confirmation
+ * with Peter's WhatsApp / WeChat, and the organizer one summary per activity and date.
+ * Sign-ups cancelled in the meantime are skipped. Only rows marked 'pending' are considered.
  */
 function sendPendingNotifications() {
   const lock = LockService.getScriptLock();
@@ -79,6 +83,18 @@ function sendPendingNotifications() {
         return '- ' + (r[COL.name - 1] || r[COL.email - 1]) + ' <' + r[COL.email - 1] + '>' +
           (r[COL.chat - 1] ? ', prefers ' + r[COL.chat - 1] : '') + (seats ? ', has a car with ' + seats + ' free seat(s)' : '');
       });
+      const stamp = Utilities.formatDate(new Date(), TZ, 'yyyy-MM-dd HH:mm');
+      if (MailApp.getRemainingDailyQuota() < idx.length + 1) return;   // out of email quota today: retry later
+      idx.forEach(function (i) {
+        const r = rows[i];
+        try {
+          sendParticipantEmail_(String(r[COL.email - 1]), String(r[COL.name - 1] || ''), String(r[COL.chat - 1] || ''), activityId, activity, date, everyone.length);
+          sh.getRange(i + 1, COL.notified).setValue('sent ' + stamp);
+        } catch (err) {
+          console.error('participant mail failed', err);
+          sh.getRange(i + 1, COL.notified).setValue('error ' + stamp + ': ' + String(err).slice(0, 80));
+        }
+      });
       if (NOTIFY_ORGANIZER) {
         MailApp.sendEmail({
           to: Session.getEffectiveUser().getEmail(),
@@ -86,11 +102,10 @@ function sendPendingNotifications() {
           body: 'New for ' + activity + ' on ' + date + ':\n' + lines.join('\n') + '\n\n' +
                 'Headcount for that day: ' + everyone.length + '.\n' +
                 'Chat apps: WhatsApp ' + apps.WhatsApp + ', WeChat ' + apps.WeChat + ', no preference ' + apps['No preference'] + '.\n\n' +
+                'Everyone listed above was emailed your WhatsApp and WeChat.\n\n' +
                 'Open the Sheet to see everyone.'
         });
       }
-      const stamp = Utilities.formatDate(new Date(), TZ, 'yyyy-MM-dd HH:mm');
-      idx.forEach(function (i) { sh.getRange(i + 1, COL.notified).setValue('sent ' + stamp); });
     });
   } finally {
     lock.releaseLock();
@@ -98,6 +113,7 @@ function sendPendingNotifications() {
 }
 
 function doGet(e) {
+  maybeRunPending_();
   let payload;
   try {
     payload = { ok: true, version: VERSION, today: today_(), counts: counts_() };
@@ -174,6 +190,74 @@ function doPost(e) {
 }
 
 // ---------- helpers ----------
+
+function sendParticipantEmail_(to, name, chat, activityId, activity, date, going) {
+  const nice = Utilities.formatDate(new Date(date + 'T12:00:00'), TZ, 'EEE, MMM d, yyyy');
+  const qr = typeof QR !== 'undefined' ? QR : {};
+  const apps = [
+    { key: 'whatsapp', label: 'WhatsApp', data: qr.whatsapp },
+    { key: 'wechat', label: 'WeChat', data: qr.wechat }
+  ].filter(function (a) { return a.data && a.data.link; });
+  if (chat === 'WeChat') apps.reverse();
+
+  const inlineImages = {};
+  const cells = apps.map(function (a) {
+    if (a.data.b64) inlineImages[a.key] = Utilities.newBlob(Utilities.base64Decode(a.data.b64), 'image/jpeg', a.key + '.jpg');
+    return '<td style="padding:0 16px 8px 0;vertical-align:top;text-align:center">' +
+      (a.data.b64 ? '<img src="cid:' + a.key + '" width="190" alt="Peter on ' + a.label + '" style="display:block;border:1px solid #d5dbd4;border-radius:8px"><br>' : '') +
+      '<a href="' + a.data.link + '" style="display:inline-block;background:#1d4b3c;color:#ffffff;text-decoration:none;padding:8px 14px;border-radius:6px;font-weight:bold">Open ' + a.label + '</a></td>';
+  }).join('');
+  const link = SITE + '#act-' + activityId;
+  const hi = name ? 'Hi ' + esc_(name) + ',' : 'Hi,';
+
+  const html =
+    '<div style="font-family:Arial,Helvetica,sans-serif;font-size:15px;line-height:1.5;color:#16201b;max-width:560px">' +
+    '<p>' + hi + '</p>' +
+    '<p>You’re in for <b>' + esc_(activity) + '</b> on <b>' + nice + '</b>. ' + going + (going === 1 ? ' person is' : ' people are') + ' going so far.</p>' +
+    (apps.length ? '<p>Add Peter, the organizer, so he can put you in the group chat. On your phone, tap the button; on a computer, scan the code:</p>' +
+      '<table cellpadding="0" cellspacing="0" role="presentation"><tr>' + cells + '</tr></table>' : '<p>Peter, the organizer, will get in touch to set up the group chat.</p>') +
+    '<p>Prices, hours and official links: <a href="' + link + '">' + esc_(activity) + ' on Québec Hangouts</a></p>' +
+    '<p style="color:#57635d;font-size:13px">Changed your mind? Open the site in the same browser and tap Cancel under My plans, or reply to this email. ' +
+    'These are informal outings: everyone pays their own way and looks after their own safety.</p>' +
+    '</div>';
+
+  const text = (name ? 'Hi ' + name + ',' : 'Hi,') + '\n\n' +
+    'You’re in for ' + activity + ' on ' + nice + '. ' + going + (going === 1 ? ' person is' : ' people are') + ' going so far.\n\n' +
+    (apps.length ? 'Add Peter, the organizer, so he can put you in the group chat:\n' + apps.map(function (a) { return a.label + ': ' + a.data.link; }).join('\n') + '\n\n' : '') +
+    'Details: ' + link + '\n\n' +
+    'Changed your mind? Open the site in the same browser and tap Cancel under My plans, or reply to this email.';
+
+  MailApp.sendEmail({
+    to: to,
+    subject: ascii_('You\'re in: ' + activity + ' on ' + nice),
+    name: 'Quebec Hangouts',
+    replyTo: Session.getEffectiveUser().getEmail(),
+    body: text,
+    htmlBody: html,
+    inlineImages: inlineImages
+  });
+}
+
+function esc_(s) {
+  return String(s).replace(/[&<>"']/g, function (c) { return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]; });
+}
+
+/** Backup for the time trigger: page loads also process due emails, at most every 2 minutes. */
+function maybeRunPending_() {
+  const cache = CacheService.getScriptCache();
+  if (cache.get('pendingRun')) return;
+  cache.put('pendingRun', '1', 120);
+  try {
+    if (!cache.get('trigger')) {
+      cache.put('trigger', '1', 21600);
+      const has = ScriptApp.getProjectTriggers().some(function (t) { return t.getHandlerFunction() === 'sendPendingNotifications'; });
+      if (!has) ScriptApp.newTrigger('sendPendingNotifications').timeBased().everyMinutes(5).create();
+    }
+    sendPendingNotifications();
+  } catch (err) {
+    console.error('pending run failed', err);
+  }
+}
 
 function suggest_(b) {
   const kind = b.kind === 'movie' ? 'movie' : 'place';

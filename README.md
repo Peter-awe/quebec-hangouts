@@ -8,7 +8,9 @@ Pick a place and a day around Montréal. When other people pick the same one, we
 
 - `index.html`, `styles.css`, `app.js`: the static page served by GitHub Pages.
 - `data.js`: every place, deal, price, opening rule and source link. Facts were checked on the official pages on the date in `CHECKED`.
-- `backend/Code.gs`: a Google Apps Script web app bound to a private Google Sheet. It stores sign-ups (email, optional name, chat app, car seats) and returns headcounts only.
+- `data.fr.js`, `data.zh.js`: the same content in French and Simplified Chinese, keyed by id; arrays line up with the English ones. Update them whenever a fact in `data.js` changes.
+- `i18n.js`: interface text in English, French and Chinese. The page picks the visitor's browser language (French or Chinese, otherwise English), and the EN / FR / 中文 switch at the top overrides it. `?lang=fr` or `?lang=zh` in a link opens that language.
+- `backend/Code.gs`: a Google Apps Script web app bound to a private Google Sheet. It stores sign-ups (email, optional name, chat app, page language) and returns headcounts only.
 
 ## Adding a place
 

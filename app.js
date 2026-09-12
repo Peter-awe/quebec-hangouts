@@ -6,6 +6,11 @@
   const DAYS_SHOWN = 10;
   const LOOKAHEAD_DAYS = 150;
   const { ACTIVITIES, CATEGORIES, DEALS, CHECKED, MOVIES, MOVIE_COUNTRIES, MOVIE_DECADES, MOVIE_GENRES } = window.QH_DATA;
+  const I18N = window.QH_I18N;
+  // Content in other languages, laid over data.js: { zh: data.zh.js, fr: data.fr.js }.
+  const OVERLAY = { zh: window.QH_ZH || {}, fr: window.QH_FR || {} };
+  const LOCALES = { en: 'en-CA', fr: 'fr-CA', zh: 'zh-CN' };
+  const HTML_LANG = { en: 'en', fr: 'fr-CA', zh: 'zh-CN' };
 
   // ---------- storage (never throws) ----------
   const store = {
@@ -39,13 +44,56 @@
   }
   const savePlans = () => store.set('qh.plans', [...state.mine]);
 
+  // ---------- language ----------
+  // The inline script in <head> picks the first language (?lang=, saved choice, then the browser) before paint.
+  let lang = I18N[window.QH_LANG] ? window.QH_LANG : 'en';
+  function t(k, ...args) {
+    const v = k in I18N[lang] ? I18N[lang][k] : I18N.en[k];
+    return typeof v === 'function' ? v(...args) : v;
+  }
+
+  // An activity in the page language, laid over the English one (arrays line up index by index).
+  // Sign-ups always send the English name, so the Sheet and the organizer emails stay in one language.
+  const locCache = new Map();
+  function L(act) {
+    const z = lang !== 'en' && ((OVERLAY[lang] || {}).activities || {})[act.id];
+    if (!z) return act;
+    const ck = lang + '|' + act.id;
+    if (locCache.has(ck)) return locCache.get(ck);
+    const s = act.schedule;
+    const v = Object.assign({}, act, {
+      name: z.name || act.name,
+      local: z.local || act.local,
+      blurb: z.blurb || act.blurb,
+      img: act.img && Object.assign({}, act.img, z.alt ? { alt: z.alt } : null),
+      board: act.board && Object.assign({}, act.board, z.board),
+      tags: (act.tags || []).map((tg, i) => Object.assign({}, tg, { label: (z.tags || [])[i] || tg.label })),
+      facts: act.facts.map((f, i) => (z.facts || [])[i] || f),
+      sources: act.sources.map((src, i) => Object.assign({}, src, { label: (z.sources || [])[i] || src.label })),
+      schedule: Object.assign({}, s, {
+        endedNote: z.endedNote || s.endedNote,
+        dayNotes: s.dayNotes && Object.assign({}, s.dayNotes, z.dayNotes),
+        dates: s.dates && s.dates.map((d) => Object.assign({}, d, { note: (z.notes || {})[d.date] || d.note }))
+      })
+    });
+    locCache.set(ck, v);
+    return v;
+  }
+  const ov = () => (lang === 'en' ? {} : OVERLAY[lang] || {});
+  const catText = (c) => (ov().categories || {})[c.id] || c;
+  const dealText = (d, i) => ((ov().deals || [])[i] ? Object.assign({}, d, ov().deals[i]) : d);
+  const movieLabel = (table, v) => (ov()[table] || {})[v] || v;
+
   // ---------- dates (all as yyyy-mm-dd strings, Montréal time) ----------
   const todayISO = new Intl.DateTimeFormat('en-CA', { timeZone: TZ, year: 'numeric', month: '2-digit', day: '2-digit' }).format(new Date());
   const toUTC = (iso) => { const [y, m, d] = iso.split('-').map(Number); return new Date(Date.UTC(y, m - 1, d, 12)); };
   const toISO = (dt) => dt.toISOString().slice(0, 10);
   const addDays = (iso, n) => { const dt = toUTC(iso); dt.setUTCDate(dt.getUTCDate() + n); return toISO(dt); };
-  const fmt = (iso, opts) => new Intl.DateTimeFormat('en-CA', Object.assign({ timeZone: 'UTC' }, opts)).format(toUTC(iso));
-  const longDate = (iso) => fmt(iso, { weekday: 'short', month: 'short', day: 'numeric' });
+  const fmt = (iso, opts) => new Intl.DateTimeFormat(LOCALES[lang], Object.assign({ timeZone: 'UTC' }, opts)).format(toUTC(iso));
+  // "Sat, Sep 19" · "sam. 19 sept." · "9月19日 周六"
+  const longDate = (iso) => lang === 'zh'
+    ? fmt(iso, { month: 'long', day: 'numeric' }) + ' ' + fmt(iso, { weekday: 'short' })
+    : fmt(iso, { weekday: 'short', month: 'short', day: 'numeric' });
 
   function openOn(act, iso) {
     const s = act.schedule;
@@ -121,7 +169,7 @@
   function renderFilters() {
     const bar = document.getElementById('filter-bar');
     bar.replaceChildren();
-    const cats = [{ id: 'all', label: 'Everything' }].concat(CATEGORIES);
+    const cats = [{ id: 'all', label: t('everything') }].concat(CATEGORIES.map((c) => Object.assign({}, c, { label: catText(c).label })));
     for (const c of cats) {
       const n = c.id === 'all' ? ACTIVITIES.length : ACTIVITIES.filter((a) => a.cat === c.id).length;
       if (!n) continue;
@@ -140,13 +188,14 @@
       const acts = ACTIVITIES.filter((a) => a.cat === c.id);
       if (!acts.length) continue;
       root.append(
-        el('h2', { class: 'group-title', id: 'cat-' + c.id }, c.label, el('small', { text: c.note })),
+        el('h2', { class: 'group-title', id: 'cat-' + c.id }, catText(c).label, el('small', { text: catText(c).note })),
         el('div', { class: 'grid' }, acts.map(renderCard))
       );
     }
   }
 
-  function renderCard(act) {
+  function renderCard(raw) {
+    const act = L(raw);
     const card = el('article', { class: 'card', id: 'act-' + act.id });
     let fig;
     if (act.img) {
@@ -178,9 +227,9 @@
       act.local ? el('p', { class: 'local', text: act.local }) : null,
       el('p', { class: 'blurb', text: act.blurb }),
       facts,
-      renderPicker(act),
+      renderPicker(raw),
       el('details', {},
-        el('summary', { text: 'Sources · checked ' + fmt(CHECKED, { month: 'short', day: 'numeric', year: 'numeric' }) }),
+        el('summary', { text: t('checkedOn', fmt(CHECKED, { month: 'short', day: 'numeric', year: 'numeric' })) }),
         el('ul', {}, act.sources.map((s) => el('li', {}, el('a', { href: s.url, target: '_blank', rel: 'noopener' }, s.label))))
       )
     ));
@@ -199,61 +248,62 @@
       .sort()[0] || null;
   }
 
-  function renderPicker(act) {
+  function renderPicker(raw) {
+    const act = L(raw);
     const wrap = el('div', { class: 'pick', 'data-act': act.id });
     const days = upcomingDays(act);
     const sel = selectedDate(act);
     const head = el('div', { class: 'pick-head' },
-      el('p', { class: 'section-label', text: act.schedule.type === 'dates' ? 'Pick a date' : 'Pick a day' }));
+      el('p', { class: 'section-label', text: act.schedule.type === 'dates' ? t('pickDate') : t('pickDay') }));
     if (act.schedule.type === 'weekly') {
-      const week = el('span', { class: 'week', 'aria-label': 'Open days' });
+      const week = el('span', { class: 'week', 'aria-label': t('openDays') });
       const open = weekDays(act.schedule);
-      ['S', 'M', 'T', 'W', 'T', 'F', 'S'].forEach((d, i) => week.append(el('b', { class: open.includes(i) ? 'on' : '', text: d })));
+      t('weekLetters').forEach((d, i) => week.append(el('b', { class: open.includes(i) ? 'on' : '', text: d })));
       head.append(week);
     }
     wrap.append(head);
 
     if (!days.length) {
-      wrap.append(el('p', { class: 'upcoming-empty', text: act.schedule.endedNote || 'No open dates left this season.' }));
+      wrap.append(el('p', { class: 'upcoming-empty', text: act.schedule.endedNote || t('noDatesLeft') }));
       return wrap;
     }
 
-    const row = el('div', { class: 'days', role: 'group', 'aria-label': 'Available days for ' + act.name });
-    for (const d of days) row.append(dayButton(act, d, sel));
+    const row = el('div', { class: 'days', role: 'group', 'aria-label': t('availableFor', act.name) });
+    for (const d of days) row.append(dayButton(raw, d, sel));
     wrap.append(row);
 
     if (act.schedule.type === 'weekly') {
       const input = el('input', {
         type: 'date', min: todayISO, max: lastDay(act.schedule) || addDays(todayISO, 365), value: sel && !days.some((d) => d.date === sel) ? sel : '',
-        'aria-label': 'Another date for ' + act.name,
+        'aria-label': t('anotherDateFor', act.name),
         onchange: () => {
           if (!input.value) return;
-          if (!openOn(act, input.value)) { toast(act.name + ' isn’t open on ' + longDate(input.value) + '. Pick one of its open days.', true); input.value = ''; return; }
+          if (!openOn(act, input.value)) { toast(t('notOpenOn', act.name, longDate(input.value)), true); input.value = ''; return; }
           state.selected[act.id] = input.value;
-          refreshPicker(act);
+          refreshPicker(raw);
         }
       });
-      wrap.append(el('label', { class: 'other-date' }, el('span', { text: 'Another day:' }), input));
+      wrap.append(el('label', { class: 'other-date' }, el('span', { text: t('anotherDay') }), input));
     }
 
-    wrap.append(pickAction(act, sel));
+    wrap.append(pickAction(raw, sel));
     return wrap;
   }
 
   // Confirm / Cancel bar under the dates. Nothing is saved until Confirm.
   function pickAction(act, iso) {
-    if (!iso) return el('div', { class: 'pick-action' }, el('span', { class: 'pick-hint', text: 'Tap a date, then confirm.' }));
+    if (!iso) return el('div', { class: 'pick-action' }, el('span', { class: 'pick-hint', text: t('tapThenConfirm') }));
     const k = key(act.id, iso);
     const mine = state.mine.has(k);
     const busy = state.busy.has(k);
     const n = countFor(act.id, iso);
-    const status = mine ? 'You’re in' : !state.countsLoaded ? '' : n ? n + (n === 1 ? ' person going' : ' people going') : 'Nobody yet';
+    const status = mine ? t('youreIn') : !state.countsLoaded ? '' : n ? t('peopleGoing', n) : t('nobodyYet');
     return el('div', { class: 'pick-action' + (mine ? ' is-mine' : ''), 'aria-live': 'polite' },
       el('span', { class: 'pick-summary' }, el('strong', { text: longDate(iso) }), status ? ' · ' + status : ''),
       el('button', {
         class: 'btn ' + (mine ? 'ghost' : 'confirm'), type: 'button', disabled: busy,
-        text: busy ? (mine ? 'Saving…' : 'Saving…') : mine ? 'Cancel' : 'Confirm',
-        'aria-label': (mine ? 'Cancel ' : 'Confirm ') + act.name + ' on ' + longDate(iso),
+        text: busy ? t('saving') : mine ? t('cancel') : t('confirm'),
+        'aria-label': t(mine ? 'cancelAria' : 'confirmAria', L(act).name, longDate(iso)),
         onclick: () => toggle(act, iso)
       }));
   }
@@ -263,15 +313,15 @@
     const n = countFor(act.id, d.date);
     const mine = state.mine.has(k);
     const selected = d.date === sel;
-    const going = !state.countsLoaded ? '' : mine ? 'You’re in' + (n > 1 ? ' +' + (n - 1) : '') : n ? n + ' going' : 'Be first';
-    const label = longDate(d.date) + (d.note ? ', ' + d.note : '') + '. ' + (mine ? 'You’re going.' : n + ' going.') + (selected ? ' Selected; press again to unselect.' : ' Press to select.');
+    const going = !state.countsLoaded ? '' : mine ? t('chipIn', n - 1) : n ? t('chipGoing', n) : t('chipBeFirst');
+    const label = t('dayAria', longDate(d.date), d.note, mine, n, selected);
     return el('button', {
       type: 'button', class: 'day' + (mine ? ' mine' : '') + (selected ? ' selected' : '') + (state.busy.has(k) ? ' busy' : ''),
       'aria-pressed': String(selected), 'aria-label': label, 'data-key': k,
       onclick: () => { state.selected[act.id] = selected ? '' : d.date; refreshPicker(act); }
     },
       el('span', { class: 'dow', text: fmt(d.date, { weekday: 'short' }) }),
-      el('span', { class: 'dnum', text: fmt(d.date, { day: 'numeric' }) }),
+      el('span', { class: 'dnum', text: String(toUTC(d.date).getUTCDate()) }),
       el('span', { class: 'mon', text: fmt(d.date, { month: 'short' }) }),
       el('span', { class: 'going' + (n && !mine ? ' has' : ''), text: going }),
       d.note ? el('span', { class: 'note', text: d.note }) : null
@@ -293,23 +343,23 @@
     const list = document.getElementById('upcoming-list');
     const empty = document.getElementById('upcoming-empty');
     list.replaceChildren();
-    if (!state.countsLoaded) { empty.textContent = 'Loading headcounts…'; empty.hidden = false; return; }
-    if (state.countsFailed) { empty.textContent = 'Headcounts didn’t load in this browser. Refresh to try again; an ad blocker or a CORS extension can cause this.'; empty.hidden = false; return; }
+    if (!state.countsLoaded) { empty.textContent = t('loadingCounts'); empty.hidden = false; return; }
+    if (state.countsFailed) { empty.textContent = t('countsFailed'); empty.hidden = false; return; }
     const rows = Object.entries(state.counts)
       .map(([k, n]) => { const [id, date] = k.split('|'); return { act: ACTIVITIES.find((a) => a.id === id), date, n }; })
       .filter((r) => r.act && r.n > 0 && r.date >= todayISO)
       .sort((a, b) => a.date.localeCompare(b.date) || b.n - a.n)
       .slice(0, 12);
     empty.hidden = rows.length > 0;
-    empty.textContent = 'No plans yet. Pick a place and a day below, and you’ll be the first.';
+    empty.textContent = t('noPlansYet');
     for (const r of rows) {
       list.append(el('button', {
         class: 'upcoming-item', type: 'button',
         onclick: () => { state.selected[r.act.id] = r.date; state.filter = 'all'; renderFilters(); renderGroups(); document.getElementById('act-' + r.act.id).scrollIntoView({ behavior: 'smooth', block: 'start' }); }
       },
         el('span', { class: 'when', text: longDate(r.date) }),
-        el('span', { class: 'what', text: r.act.name }),
-        el('span', { class: 'n', text: r.n + (r.n === 1 ? ' person going' : ' people going') })
+        el('span', { class: 'what', text: L(r.act).name }),
+        el('span', { class: 'n', text: t('peopleGoing', r.n) })
       ));
     }
   }
@@ -317,11 +367,12 @@
   function renderDeals() {
     const root = document.getElementById('deals');
     root.replaceChildren();
-    for (const d of DEALS) {
+    for (const [i, raw] of DEALS.entries()) {
+      const d = dealText(raw, i);
       root.append(el('div', { class: 'deal' },
         el('h4', { text: d.name }),
         el('div', { class: 'what', text: d.what }),
-        el('div', { class: 'who' }, d.who, ' ', el('a', { href: d.url, target: '_blank', rel: 'noopener' }, 'Source'))
+        el('div', { class: 'who' }, d.who, ' ', el('a', { href: d.url, target: '_blank', rel: 'noopener' }, t('source')))
       ));
     }
   }
@@ -330,10 +381,10 @@
     const who = document.getElementById('who');
     who.replaceChildren();
     if (state.profile && state.profile.email) {
-      who.append(el('span', { text: 'Signing up as ' + state.profile.email }),
-        el('button', { class: 'linkish', type: 'button', text: 'Change', onclick: () => openDialog(null) }));
+      who.append(el('span', { text: t('signingUpAs', state.profile.email) }),
+        el('button', { class: 'linkish', type: 'button', text: t('change'), onclick: () => openDialog(null) }));
     } else {
-      who.append(el('span', { text: 'No account needed' }));
+      who.append(el('span', { text: t('noAccount') }));
     }
   }
 
@@ -375,7 +426,7 @@
     } catch (e) {
       state.countsLoaded = true;
       state.countsFailed = true;
-      toast('Headcounts couldn’t load. You can still sign up; refresh later to see who’s going.', true);
+      toast(t('countsToast'), true);
     }
     renderUpcoming();
     renderGroups();
@@ -383,14 +434,7 @@
     renderSuggestAvailability();
   }
 
-  const ERRORS = {
-    email: 'That email address doesn’t look right. Fix it and try again.',
-    date: 'That day is no longer open for sign-ups. Pick another one.',
-    rate: 'Too many changes in a short time. Wait a few minutes and try again.',
-    activity: 'Something is off with this activity. Refresh the page and try again.',
-    unconfirmed: 'Your browser blocked the reply from the sign-up sheet, so this couldn’t be confirmed. Try again in a private window or with ad-blocking and CORS extensions turned off.',
-    network: 'That change didn’t go through. You may have made a lot of changes this hour; wait a few minutes and try again.'
-  };
+  const ERRORS = { email: 'errEmail', date: 'errDate', rate: 'errRate', activity: 'errActivity', unconfirmed: 'errUnconfirmed', network: 'errNetwork' };
 
   function toggle(act, iso) {
     const joining = !state.mine.has(key(act.id, iso));
@@ -415,7 +459,8 @@
     renderMyPlans();
 
     try {
-      const body = JSON.stringify({ action, email, name: p.name || '', chat: p.chat || '', seats: p.seats || 0, website: p.website || '', activityId: act.id, activity: act.name, date: iso });
+      // activity: the English name, for the Sheet; lang + activityLocal: the participant email follows the page language.
+      const body = JSON.stringify({ action, email, name: p.name || '', chat: p.chat || '', website: p.website || '', activityId: act.id, activity: act.name, activityLocal: lang === 'en' ? '' : L(act).name, lang, date: iso });
       let data;
       try {
         const res = await fetch(API, { method: 'POST', body });
@@ -433,13 +478,13 @@
       state.counts = data.counts || state.counts;
       savePlans();
       toast(action === 'join'
-        ? 'You’re in: ' + act.name + ', ' + longDate(iso) + '. In 30 minutes you’ll get an email with Peter’s ' + (p.chat === 'wechat' ? 'WeChat' : 'WhatsApp') + '. Cancel before then and nothing is sent.'
-        : 'You left ' + act.name + ' on ' + longDate(iso) + '.',
-        false, { label: 'Undo', run: () => send(act, iso, action === 'join' ? 'leave' : 'join') });
+        ? t('joined', L(act).name, longDate(iso), p.chat)
+        : t('left', L(act).name, longDate(iso)),
+        false, { label: t('undo'), run: () => send(act, iso, action === 'join' ? 'leave' : 'join') });
     } catch (e) {
       if (before.mine) state.mine.set(k, before.email); else state.mine.delete(k);
       state.counts[k] = before.n;
-      toast(ERRORS[e.code] || 'Couldn’t reach the sign-up sheet. Check your connection and try again.', true);
+      toast(t(ERRORS[e.code] || 'errGeneric'), true);
     } finally {
       state.busy.delete(k);
       refreshDay(act, iso);
@@ -468,17 +513,17 @@
 
     box.hidden = !plans.length;
     link.hidden = !plans.length;
-    link.textContent = 'My plans (' + plans.length + ')';
+    link.textContent = t('myPlansLink', plans.length);
     list.replaceChildren(...plans.map((pl) => {
       const n = countFor(pl.act.id, pl.date);
       return el('li', { class: 'plan' },
         el('span', { class: 'plan-when', text: longDate(pl.date) }),
         el('a', {
-          class: 'plan-what', href: '#act-' + pl.act.id, text: pl.act.name,
+          class: 'plan-what', href: '#act-' + pl.act.id, text: L(pl.act).name,
           onclick: (ev) => { ev.preventDefault(); state.filter = 'all'; renderFilters(); renderGroups(); document.getElementById('act-' + pl.act.id).scrollIntoView({ behavior: 'smooth', block: 'start' }); }
         }),
-        el('span', { class: 'plan-n', text: state.countsLoaded ? n + (n === 1 ? ' person going' : ' people going') : '' }),
-        el('button', { class: 'btn ghost plan-cancel', type: 'button', text: 'Cancel', 'aria-label': 'Cancel ' + pl.act.name + ' on ' + longDate(pl.date), onclick: () => send(pl.act, pl.date, 'leave') })
+        el('span', { class: 'plan-n', text: state.countsLoaded ? t('peopleGoing', n) : '' }),
+        el('button', { class: 'btn ghost plan-cancel', type: 'button', text: t('cancel'), 'aria-label': t('cancelAria', L(pl.act).name, longDate(pl.date)), onclick: () => send(pl.act, pl.date, 'leave') })
       );
     }));
   }
@@ -489,7 +534,6 @@
   const f = {
     email: document.getElementById('f-email'),
     name: document.getElementById('f-name'),
-    seats: document.getElementById('f-seats'),
     website: document.getElementById('f-website'),
     chat: () => [...form.querySelectorAll('input[name="chat"]')]
   };
@@ -499,15 +543,14 @@
     const p = state.profile || {};
     f.email.value = p.email || '';
     f.name.value = p.name || '';
-    f.seats.value = String(p.seats || 0);
     f.website.value = '';
     f.chat().forEach((r) => { r.checked = !!p.chat && r.value === p.chat; });
     document.getElementById('f-chat-error').hidden = true;
     f.chat().forEach((r) => { r.onchange = () => { document.getElementById('f-chat-error').hidden = true; }; });
     document.getElementById('join-for').textContent = pending
-      ? pending.act.name + ' · ' + longDate(pending.iso)
-      : 'Update the details used for your next sign-ups.';
-    document.getElementById('join-submit').textContent = pending ? 'Save and join' : 'Save';
+      ? L(pending.act).name + ' · ' + longDate(pending.iso)
+      : t('updateDetails');
+    document.getElementById('join-submit').textContent = pending ? t('saveAndJoin') : t('save');
     if (typeof dlg.showModal === 'function') dlg.showModal(); else dlg.setAttribute('open', '');
     f.email.focus();
   }
@@ -517,12 +560,12 @@
     const email = f.email.value.trim();
     const chat = (f.chat().find((r) => r.checked) || {}).value || '';
     document.getElementById('f-chat-error').hidden = !!chat;
-    if (!/^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(email)) { f.email.setCustomValidity('Enter an email like name@example.com'); f.email.reportValidity(); return; }
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(email)) { f.email.setCustomValidity(t('emailInvalid')); f.email.reportValidity(); return; }
     f.email.setCustomValidity('');
     if (!chat) { f.chat()[0].focus(); return; }
     state.profile = {
       email, name: f.name.value.trim().slice(0, 40),
-      chat, seats: parseInt(f.seats.value, 10) || 0,
+      chat,
       website: f.website.value
     };
     store.set('qh.profile', state.profile);
@@ -534,13 +577,8 @@
   f.email.addEventListener('input', () => f.email.setCustomValidity(''));
 
   // ---------- roll the dice (outings) ----------
-  const TIERS = [
-    { v: 0, label: 'Free', hint: '$0' },
-    { v: 1, label: '$', hint: 'up to $25' },
-    { v: 2, label: '$$', hint: 'up to $75' },
-    { v: 3, label: '$$$', hint: 'no limit' }
-  ];
-  const dice = Object.assign({ when: 'weekend', date: '', part: 'either', hours: 4, weekend: false, tier: 2, noCar: false }, store.get('qh.dice', {}));
+  const tiers = () => t('tiers').map(([label, hint], v) => ({ v, label, hint }));
+  const dice = Object.assign({ when: 'weekend', date: '', part: 'either', hours: 4, weekend: false, tier: 2 }, store.get('qh.dice', {}));
 
   function weekendDates() {
     const dow = toUTC(todayISO).getUTCDay();
@@ -576,7 +614,7 @@
     return ACTIVITIES.filter((a) => a.dice).map((act) => {
       const d = act.dice;
       if (d.tier > dice.tier) return null;
-      if (dice.noCar && d.car) return null;
+      if (d.car) return null;   // outings go by public transit, so the dice skip places that need a car
       if (d.weekend && !dice.weekend) return null;
       if (!dice.weekend && d.hours > dice.hours) return null;
       const ok = dates.filter((iso) => openOn(act, iso) && partOk(act, iso, dice.part));
@@ -596,33 +634,32 @@
     root.replaceChildren();
     const save = () => { store.set('qh.dice', dice); renderDice(); };
 
-    const dateInput = el('input', { type: 'date', min: todayISO, value: dice.date, 'aria-label': 'Pick a date',
+    const dateInput = el('input', { type: 'date', min: todayISO, value: dice.date, 'aria-label': t('pickDate'),
       onchange: (ev) => { dice.date = ev.target.value; dice.when = 'date'; save(); } });
-    const hours = el('input', { type: 'range', min: '1', max: '12', step: '1', value: String(dice.hours), disabled: dice.weekend, 'aria-label': 'Hours you have',
+    const hours = el('input', { type: 'range', min: '1', max: '12', step: '1', value: String(dice.hours), disabled: dice.weekend, 'aria-label': t('hoursAria'),
       oninput: (ev) => { dice.hours = +ev.target.value; hoursOut.textContent = hoursLabel(); countOut.textContent = countLabel(); },
       onchange: () => save() });
-    const hoursLabel = () => dice.weekend ? 'A whole weekend' : 'Up to ' + dice.hours + (dice.hours === 1 ? ' hour' : ' hours');
+    const hoursLabel = () => dice.weekend ? t('wholeWeekend') : t('upToHours', dice.hours);
     const hoursOut = el('output', { class: 'dice-out', text: hoursLabel() });
-    const countLabel = () => { const n = diceMatches().length; return n + (n === 1 ? ' place fits' : ' places fit'); };
+    const countLabel = () => t('placesFit', diceMatches().length);
     const countOut = el('span', { class: 'dice-count', 'aria-live': 'polite', text: countLabel() });
 
     root.append(
-      el('fieldset', { class: 'dice-field' }, el('legend', { text: 'When' }),
-        seg('d-when', [{ v: 'today', label: 'Today' }, { v: 'tomorrow', label: 'Tomorrow' }, { v: 'weekend', label: 'This weekend' }, { v: 'date', label: 'Pick a date' }],
+      el('fieldset', { class: 'dice-field' }, el('legend', { text: t('when') }),
+        seg('d-when', [{ v: 'today', label: t('today') }, { v: 'tomorrow', label: t('tomorrow') }, { v: 'weekend', label: t('thisWeekend') }, { v: 'date', label: t('pickDate') }],
           dice.when, (v) => { dice.when = v; save(); }),
         dice.when === 'date' ? dateInput : null),
-      el('fieldset', { class: 'dice-field' }, el('legend', { text: 'Time of day' }),
-        seg('d-part', [{ v: 'day', label: 'Daytime' }, { v: 'evening', label: 'Evening' }, { v: 'either', label: 'Either' }],
+      el('fieldset', { class: 'dice-field' }, el('legend', { text: t('timeOfDay') }),
+        seg('d-part', [{ v: 'day', label: t('daytime') }, { v: 'evening', label: t('evening') }, { v: 'either', label: t('either') }],
           dice.part, (v) => { dice.part = v; save(); })),
-      el('fieldset', { class: 'dice-field' }, el('legend', { text: 'Time you have' }),
+      el('fieldset', { class: 'dice-field' }, el('legend', { text: t('timeYouHave') }),
         el('div', { class: 'dice-hours' }, hours, hoursOut),
-        el('label', { class: 'check' }, el('input', { type: 'checkbox', checked: dice.weekend, onchange: (ev) => { dice.weekend = ev.target.checked; save(); } }), ' I have a whole weekend')),
-      el('fieldset', { class: 'dice-field' }, el('legend', { text: 'Budget per person' }),
-        seg('d-tier', TIERS, dice.tier, (v) => { dice.tier = v; save(); }),
-        el('label', { class: 'check' }, el('input', { type: 'checkbox', checked: dice.noCar, onchange: (ev) => { dice.noCar = ev.target.checked; save(); } }), ' No car')),
+        el('label', { class: 'check' }, el('input', { type: 'checkbox', checked: dice.weekend, onchange: (ev) => { dice.weekend = ev.target.checked; save(); } }), t('haveWeekend'))),
+      el('fieldset', { class: 'dice-field' }, el('legend', { text: t('budget') }),
+        seg('d-tier', tiers(), dice.tier, (v) => { dice.tier = v; save(); })),
       el('div', { class: 'dice-go' },
         countOut,
-        el('button', { class: 'btn roll', type: 'button', onclick: rollOuting }, dieIcon(), 'Roll the dice'))
+        el('button', { class: 'btn roll', type: 'button', onclick: rollOuting }, dieIcon(), t('roll')))
     );
   }
 
@@ -642,37 +679,42 @@
 
   function pickOne(list) { return list[Math.floor(Math.random() * list.length)]; }
 
+  // What the dice panel shows: undefined = the placeholder, null = nothing fits, else { act, dates, part }.
+  let diceShown;
+
   function rollOuting(ev) {
     spin(ev.currentTarget);
-    const out = document.getElementById('dice-result');
     const matches = diceMatches();
-    out.replaceChildren();
-    if (!matches.length) {
-      out.append(el('p', { class: 'dice-empty', text: 'Nothing fits all of that. Try a bigger budget, more time, or another day.' }));
-      return;
-    }
-    const prev = out.dataset.last;
+    if (!matches.length) { diceShown = null; renderDiceResult(); return; }
+    const prev = diceShown && diceShown.act.id;
     const pool = matches.length > 1 ? matches.filter((m) => m.act.id !== prev) : matches;
-    const { act, dates } = pickOne(pool);
-    out.dataset.last = act.id;
+    diceShown = Object.assign({ part: dice.part }, pickOne(pool));
+    renderDiceResult();
+  }
+
+  function renderDiceResult() {
+    const out = document.getElementById('dice-result');
+    if (diceShown === undefined) { out.replaceChildren(el('p', { class: 'dice-empty', text: t('dicePlaceholder') })); return; }
+    if (diceShown === null) { out.replaceChildren(el('p', { class: 'dice-empty', text: t('nothingFits') })); return; }
+    const { dates, part } = diceShown;
+    const act = L(diceShown.act);
     const d = act.dice;
     const chips = [
-      dates.map((iso) => longDate(iso)).join(' or '),
-      dice.part === 'either' ? null : dice.part === 'day' ? 'Daytime' : 'Evening',
-      d.weekend ? 'Weekend trip' : '~' + d.hours + ' h',
-      TIERS[d.tier].label,
-      d.car ? 'Car needed' : null
+      dates.map((iso) => longDate(iso)).join(t('or')),
+      part === 'either' ? null : part === 'day' ? t('daytime') : t('evening'),
+      d.weekend ? t('weekendTrip') : t('aboutHours', d.hours),
+      t('tiers')[d.tier][0]
     ].filter(Boolean);
-    out.append(el('div', { class: 'dice-card' },
-      el('p', { class: 'section-label', text: 'The dice say' }),
+    out.replaceChildren(el('div', { class: 'dice-card' },
+      el('p', { class: 'section-label', text: t('diceSay') }),
       el('h3', { text: act.name }),
       act.local ? el('p', { class: 'local', text: act.local }) : null,
       el('div', { class: 'eyebrow' }, chips.map((c) => el('span', { class: 'tag', text: c }))),
       el('p', { class: 'blurb', text: act.blurb }),
       el('div', { class: 'dice-actions' },
-        el('button', { class: 'btn', type: 'button', text: 'See details and dates',
+        el('button', { class: 'btn', type: 'button', text: t('seeDetails'),
           onclick: () => { state.filter = 'all'; renderFilters(); renderGroups(); document.getElementById('act-' + act.id).scrollIntoView({ behavior: 'smooth', block: 'start' }); } }),
-        el('button', { class: 'btn ghost', type: 'button', onclick: rollOuting }, dieIcon(), 'Roll again'))
+        el('button', { class: 'btn ghost', type: 'button', onclick: rollOuting }, dieIcon(), t('rollAgain')))
     ));
   }
 
@@ -691,38 +733,47 @@
     root.replaceChildren();
     const select = (label, key, options) => el('label', { class: 'movie-select' }, el('span', { text: label }),
       el('select', { onchange: (ev) => { movie[key] = ev.target.value; store.set('qh.movie', movie); renderMovies(); } },
-        [el('option', { value: '', text: 'Any' })].concat(options.map((o) => el('option', { value: String(o.v), selected: String(movie[key]) === String(o.v), text: o.label })))));
+        [el('option', { value: '', text: t('any') })].concat(options.map((o) => el('option', { value: String(o.v), selected: String(movie[key]) === String(o.v), text: o.label })))));
     const n = movieMatches().length;
     root.append(
-      select('Country', 'country', MOVIE_COUNTRIES.map((c) => ({ v: c, label: c }))),
-      select('Decade', 'decade', MOVIE_DECADES.map((y) => ({ v: y, label: y + 's' })).concat([{ v: 'earlier', label: 'Earlier' }])),
-      select('Genre', 'genre', MOVIE_GENRES.map((g) => ({ v: g, label: g }))),
+      select(t('country'), 'country', MOVIE_COUNTRIES.map((c) => ({ v: c, label: movieLabel('movieCountries', c) }))),
+      select(t('decade'), 'decade', MOVIE_DECADES.map((y) => ({ v: y, label: t('decadeLabel', y) })).concat([{ v: 'earlier', label: t('earlier') }])),
+      select(t('genre'), 'genre', MOVIE_GENRES.map((g) => ({ v: g, label: movieLabel('movieGenres', g) }))),
       el('div', { class: 'dice-go' },
-        el('span', { class: 'dice-count', text: MOVIES.length ? n + (n === 1 ? ' movie fits' : ' movies fit') : 'List coming soon' }),
-        el('button', { class: 'btn roll', type: 'button', disabled: !n, onclick: rollMovie }, dieIcon(), 'Roll a movie'))
+        el('span', { class: 'dice-count', text: MOVIES.length ? t('moviesFit', n) : t('listSoon') }),
+        el('button', { class: 'btn roll', type: 'button', disabled: !n, onclick: rollMovie }, dieIcon(), t('rollMovie')))
     );
-    const out = document.getElementById('movie-result');
-    if (!MOVIES.length && !out.childElementCount) {
-      out.append(el('div', { class: 'dice-empty' },
-        el('p', { text: 'The movie list is brand new and still empty. Tell us a film you love and it’ll be added.' }),
-        el('button', { class: 'btn ghost', type: 'button', text: 'Suggest a movie', onclick: () => openSuggest('movie') })));
-    }
+    if (movieShown === undefined) renderMovieResult();
   }
+
+  // undefined = nothing rolled yet, null = no movie fits, else the movie.
+  let movieShown;
 
   function rollMovie(ev) {
     spin(ev.currentTarget);
     const list = movieMatches();
+    movieShown = list.length ? pickOne(list) : null;
+    renderMovieResult();
+  }
+
+  function renderMovieResult() {
     const out = document.getElementById('movie-result');
-    out.replaceChildren();
-    if (!list.length) { out.append(el('p', { class: 'dice-empty', text: 'No movie fits those filters yet. Loosen one of them.' })); return; }
-    const m = pickOne(list);
-    out.append(el('div', { class: 'dice-card' },
-      el('p', { class: 'section-label', text: 'Tonight you’re watching' }),
+    const m = movieShown;
+    if (m === undefined) {
+      out.replaceChildren(MOVIES.length ? '' : el('div', { class: 'dice-empty' },
+        el('p', { text: t('moviesEmpty') }),
+        el('button', { class: 'btn ghost', type: 'button', text: t('suggestMovie'), onclick: () => openSuggest('movie') })));
+      return;
+    }
+    if (m === null) { out.replaceChildren(el('p', { class: 'dice-empty', text: t('noMovieFits') })); return; }
+    const tags = [String(m.year)].concat((m.countries || []).map((c) => movieLabel('movieCountries', c)), (m.genres || []).map((g) => movieLabel('movieGenres', g)), m.minutes ? [t('minutes', m.minutes)] : []);
+    out.replaceChildren(el('div', { class: 'dice-card' },
+      el('p', { class: 'section-label', text: t('tonight') }),
       el('h3', { text: m.title }),
       m.original && m.original !== m.title ? el('p', { class: 'local', text: m.original }) : null,
-      el('div', { class: 'eyebrow' }, [String(m.year)].concat(m.countries || [], m.genres || [], m.minutes ? [m.minutes + ' min'] : []).map((c) => el('span', { class: 'tag', text: c }))),
-      m.link ? el('p', {}, el('a', { href: m.link, target: '_blank', rel: 'noopener' }, 'About this film')) : null,
-      el('div', { class: 'dice-actions' }, el('button', { class: 'btn ghost', type: 'button', onclick: rollMovie }, dieIcon(), 'Roll again'))
+      el('div', { class: 'eyebrow' }, tags.map((c) => el('span', { class: 'tag', text: c }))),
+      m.link ? el('p', {}, el('a', { href: m.link, target: '_blank', rel: 'noopener' }, t('aboutFilm'))) : null,
+      el('div', { class: 'dice-actions' }, el('button', { class: 'btn ghost', type: 'button', onclick: rollMovie }, dieIcon(), t('rollAgain')))
     ));
   }
 
@@ -737,18 +788,19 @@
 
   function renderSuggestAvailability() {
     const ready = state.apiVersion >= 3;
-    document.querySelectorAll('[data-suggest]').forEach((b) => { b.disabled = !ready; b.title = ready ? '' : 'Opening in a moment'; });
+    document.querySelectorAll('[data-suggest]').forEach((b) => { b.disabled = !ready; b.title = ready ? '' : t('openingSoon'); });
     const note = document.getElementById('suggest-soon');
     if (note) note.hidden = ready || !state.countsLoaded;
   }
 
   function openSuggest(kind) {
-    if (state.apiVersion < 3) { toast('Suggestions open once the sign-up sheet finishes updating. Try again a bit later.', true); return; }
+    if (state.apiVersion < 3) { toast(t('suggestUpdating'), true); return; }
     suggestKind = kind === 'movie' ? 'movie' : 'place';
-    document.getElementById('suggest-title').textContent = suggestKind === 'movie' ? 'Suggest a movie' : 'Suggest a place';
-    document.getElementById('s-name-label').firstChild.textContent = suggestKind === 'movie' ? 'Movie title ' : 'Place or activity ';
-    document.getElementById('s-when-label').firstChild.textContent = suggestKind === 'movie' ? 'Year ' : 'Rough time ';
-    sf.when.placeholder = suggestKind === 'movie' ? 'e.g. 1994' : 'e.g. Saturdays in October, or all winter';
+    const movie = suggestKind === 'movie';
+    document.getElementById('suggest-title').textContent = t(movie ? 'suggestMovie' : 'suggestPlace');
+    document.getElementById('s-name-label').innerHTML = t(movie ? 'sNameMovie' : 'sNamePlace');
+    document.getElementById('s-when-label').innerHTML = t(movie ? 'sWhenMovie' : 'sWhenPlace');
+    sf.when.placeholder = t(movie ? 'sWhenPlaceholderMovie' : 'sWhenPlaceholderPlace');
     sf.name.value = ''; sf.when.value = ''; sf.link.value = ''; sf.note.value = ''; sf.website.value = '';
     sf.email.value = (state.profile && state.profile.email) || '';
     if (typeof sdlg.showModal === 'function') sdlg.showModal(); else sdlg.setAttribute('open', '');
@@ -758,11 +810,11 @@
   sform.addEventListener('submit', async (ev) => {
     ev.preventDefault();
     const payload = { action: 'suggest', kind: suggestKind, name: sf.name.value.trim(), when: sf.when.value.trim(), link: sf.link.value.trim(), note: sf.note.value.trim(), email: sf.email.value.trim(), website: sf.website.value };
-    if (payload.name.length < 2) { sf.name.setCustomValidity('Give it a name'); sf.name.reportValidity(); return; }
-    if (payload.link && !/^https?:\/\/\S+$/i.test(payload.link)) { sf.link.setCustomValidity('Links start with http:// or https://'); sf.link.reportValidity(); return; }
-    if (payload.email && !/^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(payload.email)) { sf.email.setCustomValidity('Enter an email like name@example.com, or leave it empty'); sf.email.reportValidity(); return; }
+    if (payload.name.length < 2) { sf.name.setCustomValidity(t('sNeedName')); sf.name.reportValidity(); return; }
+    if (payload.link && !/^https?:\/\/\S+$/i.test(payload.link)) { sf.link.setCustomValidity(t('sBadLink')); sf.link.reportValidity(); return; }
+    if (payload.email && !/^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(payload.email)) { sf.email.setCustomValidity(t('sBadEmail')); sf.email.reportValidity(); return; }
     const btn = document.getElementById('suggest-submit');
-    btn.disabled = true; btn.textContent = 'Sending…';
+    btn.disabled = true; btn.textContent = t('sSending');
     const body = JSON.stringify(payload);
     try {
       let data;
@@ -775,14 +827,11 @@
       }
       if (!data.ok) throw Object.assign(new Error(data.error), { code: data.error });
       sdlg.close();
-      toast(data.unconfirmed
-        ? 'Sent. Your browser hid the confirmation, but the suggestion should have reached Peter.'
-        : 'Thanks! Peter gets your suggestion by email and adds it once the details check out.');
+      toast(t(data.unconfirmed ? 'sSentUnconfirmed' : 'sThanks'));
     } catch (e) {
-      const msg = { name: 'Give it a name of at least 2 characters.', link: 'That link doesn’t look right. It should start with https://', email: 'That email doesn’t look right. Fix it or leave it empty.', rate: 'Lots of suggestions just came in. Try again in an hour.' }[e.code];
-      toast(msg || 'Couldn’t send the suggestion. Check your connection and try again.', true);
+      toast(t({ name: 'sErrName', link: 'sErrLink', email: 'sErrEmail', rate: 'sErrRate' }[e.code] || 'sErrGeneric'), true);
     } finally {
-      btn.disabled = false; btn.textContent = 'Send suggestion';
+      btn.disabled = false; btn.textContent = t('sSend');
     }
   });
   [sf.name, sf.link, sf.email].forEach((i) => i.addEventListener('input', () => i.setCustomValidity('')));
@@ -806,24 +855,57 @@
   // "Montréal · Fall 2026", "Montréal · Winter 2026–27", computed from today's date in Montréal.
   function seasonLabel(iso) {
     const [y, m] = iso.split('-').map(Number);
-    if (m === 12) return 'Winter ' + y + '–' + String(y + 1).slice(2);
-    if (m <= 2) return 'Winter ' + (y - 1) + '–' + String(y).slice(2);
-    if (m <= 5) return 'Spring ' + y;
-    if (m <= 8) return 'Summer ' + y;
-    return 'Fall ' + y;
+    if (m === 12) return t('seasonWinter', y, String(y + 1).slice(2));
+    if (m <= 2) return t('seasonWinter', y - 1, String(y).slice(2));
+    if (m <= 5) return t('seasonSpring', y);
+    if (m <= 8) return t('seasonSummer', y);
+    return t('seasonFall', y);
   }
 
+  // ---------- static text + language switch ----------
+  function applyStatic() {
+    document.documentElement.lang = HTML_LANG[lang];
+    document.title = lang === 'zh' ? 'Québec Hangouts · 魁北克去哪玩' : 'Québec Hangouts';
+    document.querySelectorAll('[data-i18n]').forEach((n) => { n.textContent = t(n.dataset.i18n); });
+    document.querySelectorAll('[data-i18n-html]').forEach((n) => { n.innerHTML = t(n.dataset.i18nHtml); });   // our own dictionary, never visitor text
+    document.querySelectorAll('[data-i18n-label]').forEach((n) => { n.setAttribute('aria-label', t(n.dataset.i18nLabel)); });
+    document.getElementById('season').textContent = t('season', seasonLabel(todayISO));
+    document.getElementById('foot-checked').textContent = t('foot2', fmt(CHECKED, { month: 'long', day: 'numeric', year: 'numeric' }));
+    document.querySelector('.wordmark-zh').hidden = lang !== 'zh';
+    document.querySelectorAll('.lang-switch [data-lang]').forEach((b) => b.setAttribute('aria-pressed', String(b.dataset.lang === lang)));
+  }
+
+  function renderAll() {
+    applyStatic();
+    renderProfileBar();
+    renderMyPlans();
+    renderFilters();
+    renderGroups();
+    renderDeals();
+    renderUpcoming();
+    renderDice();
+    renderDiceResult();
+    renderMovies();
+    renderMovieResult();
+    renderSuggestAvailability();
+  }
+
+  function setLang(next) {
+    if (next === lang || !I18N[next]) return;
+    lang = next;
+    store.set('qh.lang', lang);
+    try {
+      // A shared ?lang= link keeps following the switch, so a reload doesn't flip it back.
+      const url = new URL(location.href);
+      if (url.searchParams.has('lang')) { url.searchParams.set('lang', lang); history.replaceState(null, '', url); }
+    } catch (e) { /* file:// or old browser */ }
+    document.getElementById('toast').hidden = true;
+    renderAll();
+  }
+  document.querySelectorAll('.lang-switch [data-lang]').forEach((b) => b.addEventListener('click', () => setLang(b.dataset.lang)));
+
   // ---------- boot ----------
-  document.getElementById('season').textContent = 'Montréal · ' + seasonLabel(todayISO);
-  document.getElementById('checked-date').textContent = fmt(CHECKED, { month: 'long', day: 'numeric', year: 'numeric' });
-  renderProfileBar();
-  renderMyPlans();
-  renderFilters();
-  renderGroups();
-  renderDeals();
-  renderUpcoming();
-  renderDice();
-  renderMovies();
-  renderSuggestAvailability();
+  renderAll();
+  document.documentElement.classList.remove('i18n-pending');
   loadCounts();
 })();

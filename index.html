@@ -16,6 +16,21 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@500;600;700&family=Public+Sans:ital,wght@0,400;0,500;0,600;0,700;1,400&display=swap">
   <link rel="stylesheet" href="styles.css">
+  <script>
+    // Pick the language before the page paints: ?lang=, then the saved choice, then the browser's first language.
+    (function () {
+      var q = null, saved = null, nav = '';
+      try { q = new URLSearchParams(location.search).get('lang'); } catch (e) {}
+      try { saved = JSON.parse(localStorage.getItem('qh.lang')); } catch (e) {}
+      try { nav = (navigator.languages && navigator.languages[0]) || navigator.language || ''; } catch (e) {}
+      var ok = { en: 'en', fr: 'fr-CA', zh: 'zh-CN' };
+      var browser = /^zh\b/i.test(nav) ? 'zh' : /^fr\b/i.test(nav) ? 'fr' : 'en';
+      var l = ok[q] ? q : ok[saved] ? saved : browser;
+      window.QH_LANG = l;
+      document.documentElement.lang = ok[l];
+      if (l !== 'en') document.documentElement.classList.add('i18n-pending');
+    })();
+  </script>
 </head>
 <body>
   <div class="wrap">
@@ -25,12 +40,17 @@
         <a href="#my-plans" id="my-plans-link" class="plans-link" hidden>My plans</a>
         <span class="who" id="who"></span>
       </span>
+      <span class="lang-switch" role="group" aria-label="Language / Langue / 语言">
+        <button type="button" data-lang="en" lang="en" aria-pressed="true">EN</button>
+        <button type="button" data-lang="fr" lang="fr-CA" aria-pressed="false">FR</button>
+        <button type="button" data-lang="zh" lang="zh-CN" aria-pressed="false">中文</button>
+      </span>
     </div>
 
     <section class="my-plans" id="my-plans" aria-labelledby="my-plans-title" hidden>
       <div class="my-plans-head">
-        <h2 id="my-plans-title">My plans</h2>
-        <p>Saved in this browser. Changed your mind? Cancel here.</p>
+        <h2 id="my-plans-title" data-i18n="myPlansTitle">My plans</h2>
+        <p data-i18n="myPlansNote">Saved in this browser. Changed your mind? Cancel here.</p>
       </div>
       <ul class="plan-list" id="my-plans-list"></ul>
     </section>
@@ -39,31 +59,32 @@
       <div class="head-grid">
         <div>
           <h1 class="wordmark">Québec<span class="b">Hangouts</span></h1>
+          <p class="wordmark-zh" lang="zh-CN" hidden>魁北克去哪玩</p>
         </div>
         <div style="display:grid;gap:22px">
-          <p class="lede">Pick a place and a day. When other people pick the same one, we go together.</p>
+          <p class="lede" data-i18n="lede">Pick a place and a day. When other people pick the same one, we go together.</p>
           <ol class="steps">
-            <li><span><strong>Tap a day, then Confirm</strong> on anything below that looks fun.</span></li>
-            <li><span><strong>Leave your email once.</strong> Only headcounts are public.</span></li>
-            <li><span><strong>Get Peter’s contact.</strong> 30 minutes after you confirm, an email brings his WhatsApp or WeChat, whichever you picked, so he can add you to the group chat.</span></li>
+            <li><span data-i18n-html="step1"><strong>Tap a day, then Confirm</strong> on anything below that looks fun.</span></li>
+            <li><span data-i18n-html="step2"><strong>Leave your email once.</strong> Only headcounts are public.</span></li>
+            <li><span data-i18n-html="step3"><strong>Get Peter’s contact.</strong> 30 minutes after you confirm, an email brings his WhatsApp or WeChat, whichever you picked, so he can add you to the group chat.</span></li>
           </ol>
           <nav class="quicklinks" aria-label="Shortcuts">
-            <a href="#dice">Roll the dice</a>
-            <a href="#movies">Movie night</a>
-            <button type="button" class="linkish" data-suggest="place">Suggest a place</button>
+            <a href="#dice" data-i18n="qlDice">Roll the dice</a>
+            <a href="#movies" data-i18n="qlMovies">Movie night</a>
+            <button type="button" class="linkish" data-suggest="place" data-i18n="qlSuggest">Suggest a place</button>
           </nav>
         </div>
       </div>
 
       <section class="upcoming" aria-labelledby="upcoming-title">
-        <h2 class="section-label" id="upcoming-title">Days that already have people</h2>
+        <h2 class="section-label" id="upcoming-title" data-i18n="upcomingTitle">Days that already have people</h2>
         <div class="upcoming-list" id="upcoming-list"></div>
         <p class="upcoming-empty" id="upcoming-empty">Loading headcounts…</p>
       </section>
     </header>
   </div>
 
-  <nav class="filters" aria-label="Filter by category">
+  <nav class="filters" aria-label="Filter by category" data-i18n-label="filtersLabel">
     <div class="wrap" id="filter-bar"></div>
   </nav>
 
@@ -72,89 +93,78 @@
 
     <section class="dice" id="dice" aria-labelledby="dice-title">
       <div class="dice-head">
-        <h2 class="group-title" id="dice-title">Still can’t decide? <small>Roll the dice: set your time and budget and let chance pick. You don’t need anyone else to go.</small></h2>
+        <h2 class="group-title" id="dice-title" data-i18n-html="diceTitle">Still can’t decide? <small>Roll the dice: set your time and budget and let chance pick. You don’t need anyone else to go.</small></h2>
       </div>
       <div class="dice-panel">
         <div class="dice-form" id="dice-form"></div>
         <div class="dice-result" id="dice-result" aria-live="polite">
-          <p class="dice-empty">Your pick shows up here. Time needed is a rough guess, getting there included.</p>
+          <p class="dice-empty" data-i18n="dicePlaceholder">Your pick shows up here. Time needed is a rough guess, getting there included.</p>
         </div>
       </div>
     </section>
 
     <section class="suggest-band" aria-labelledby="suggest-band-title">
       <div>
-        <h2 id="suggest-band-title">Know a spot that’s missing?</h2>
-        <p>A restaurant, a hike, a festival, a weird little museum. Send it in. Once the details check out, Peter adds it here and people can sign up for it.</p>
-        <p class="suggest-soon" id="suggest-soon" hidden>Suggestions open once the sign-up sheet finishes updating.</p>
+        <h2 id="suggest-band-title" data-i18n="suggestBandTitle">Know a spot that’s missing?</h2>
+        <p data-i18n="suggestBandText">A restaurant, a hike, a festival, a weird little museum. Send it in. Once the details check out, Peter adds it here and people can sign up for it.</p>
+        <p class="suggest-soon" id="suggest-soon" data-i18n="suggestSoon" hidden>Suggestions open once the sign-up sheet finishes updating.</p>
       </div>
-      <button type="button" class="btn big" data-suggest="place">Suggest a place</button>
+      <button type="button" class="btn big" data-suggest="place" data-i18n="suggestPlace">Suggest a place</button>
     </section>
 
     <section class="movies" id="movies" aria-labelledby="movies-title">
-      <h2 class="group-title" id="movies-title">Movie night <small>At home, on your own. Narrow it down, or just roll.</small></h2>
+      <h2 class="group-title" id="movies-title" data-i18n-html="moviesTitle">Movie night <small>At home, on your own. Narrow it down, or just roll.</small></h2>
       <div class="dice-panel">
         <div class="dice-form movie-form" id="movie-form"></div>
         <div class="dice-result" id="movie-result" aria-live="polite"></div>
       </div>
     </section>
 
-    <h2 class="group-title" id="deals-title">Student deals <small>Not outings, just money you can save around Montréal. Check the age limits.</small></h2>
+    <h2 class="group-title" id="deals-title" data-i18n-html="dealsTitle">Student deals <small>Not outings, just money you can save around Montréal. Check the age limits.</small></h2>
     <div class="deals" id="deals"></div>
 
     <footer class="foot">
-      <p>These are informal, self-organized outings. Everyone pays their own way and looks after their own safety.</p>
-      <p>Prices, hours and dates were checked on the official sites on <span id="checked-date"></span>. They can change, so open the source link on a card before you go.</p>
-      <p>Your email goes only to a private sign-up sheet and is used only to send you the organizer’s contact for the group chat. This page shows headcounts, never names or emails.</p>
-      <p>Fall colour forecast from <a href="https://bonjourquebec.com/en-ca/blog/tips/fall-colours-peak-forecasts" target="_blank" rel="noopener">Bonjour Québec</a> (updated August 19, 2026).</p>
-      <p>Photos from Wikimedia Commons; each photo’s author and license is linked on the photo.</p>
+      <p data-i18n="foot1">These are informal, self-organized outings. Everyone pays their own way and looks after their own safety.</p>
+      <p id="foot-checked">Prices, hours and dates were checked on the official sites on <span id="checked-date"></span>. They can change, so open the source link on a card before you go.</p>
+      <p data-i18n="foot3">Your email goes only to a private sign-up sheet and is used only to send you the organizer’s contact for the group chat. This page shows headcounts, never names or emails.</p>
+      <p data-i18n-html="foot4">Fall colour forecast from <a href="https://bonjourquebec.com/en-ca/blog/tips/fall-colours-peak-forecasts" target="_blank" rel="noopener">Bonjour Québec</a> (updated August 19, 2026).</p>
+      <p data-i18n="foot5">Photos from Wikimedia Commons; each photo’s author and license is linked on the photo.</p>
     </footer>
   </main>
 
   <dialog id="join-dialog" aria-labelledby="join-title">
     <form id="join-form" class="dlg" novalidate>
-      <h2 id="join-title">Join this day</h2>
+      <h2 id="join-title" data-i18n="joinTitle">Join this day</h2>
       <p class="for" id="join-for"></p>
 
       <div class="field">
-        <label for="f-email">Email <span class="hint">· required: Peter’s contact arrives here</span></label>
+        <label for="f-email" data-i18n-html="emailLabel">Email <span class="hint">· required: Peter’s contact arrives here</span></label>
         <input id="f-email" name="email" type="email" autocomplete="email" inputmode="email" required>
       </div>
 
       <div class="field">
-        <label for="f-name">First name <span class="hint">· optional</span></label>
+        <label for="f-name" data-i18n-html="nameLabel">First name <span class="hint">· optional</span></label>
         <input id="f-name" name="name" type="text" autocomplete="given-name" maxlength="40">
       </div>
 
       <fieldset class="field" id="f-chat">
-        <legend>Where should Peter add you? <span class="hint">· required: you’ll get his contact for this app</span></legend>
+        <legend data-i18n-html="chatLegend">Where should Peter add you? <span class="hint">· required: you’ll get his contact for this app</span></legend>
         <div class="seg">
           <label><input type="radio" name="chat" value="whatsapp" required><span>WhatsApp</span></label>
-          <label><input type="radio" name="chat" value="wechat"><span>WeChat</span></label>
+          <label><input type="radio" name="chat" value="wechat"><span data-i18n="wechat">WeChat</span></label>
         </div>
-        <p class="field-error" id="f-chat-error" hidden>Pick WhatsApp or WeChat.</p>
+        <p class="field-error" id="f-chat-error" data-i18n="chatError" hidden>Pick WhatsApp or WeChat.</p>
       </fieldset>
-
-      <div class="field">
-        <label for="f-seats">Driving? <span class="hint">· helps for places without transit</span></label>
-        <select id="f-seats" name="seats">
-          <option value="0">No car</option>
-          <option value="1">I have a car, 1 free seat</option>
-          <option value="2">I have a car, 2 free seats</option>
-          <option value="3">I have a car, 3 free seats</option>
-          <option value="4">I have a car, 4 free seats</option>
-        </select>
-      </div>
 
       <div class="hp" aria-hidden="true">
         <label for="f-website">Website</label>
         <input id="f-website" name="website" type="text" tabindex="-1" autocomplete="off">
       </div>
 
-      <p class="privacy">Saved in this browser for next time. Only headcounts are shown on the page.</p>
+      <p class="privacy" data-i18n="privacy">Saved in this browser for next time. Only headcounts are shown on the page.</p>
 
       <div class="dlg-actions">
-        <button class="btn ghost" type="button" id="join-cancel">Cancel</button>
+        <button class="btn ghost" type="button" id="join-cancel" data-i18n="cancel">Cancel</button>
         <button class="btn" type="submit" id="join-submit">Save and join</button>
       </div>
     </form>
@@ -163,7 +173,7 @@
   <dialog id="suggest-dialog" aria-labelledby="suggest-title">
     <form id="suggest-form" class="dlg" novalidate>
       <h2 id="suggest-title">Suggest a place</h2>
-      <p class="for">Peter reads every suggestion and checks the details before adding it.</p>
+      <p class="for" data-i18n="suggestIntro">Peter reads every suggestion and checks the details before adding it.</p>
 
       <div class="field">
         <label for="s-name" id="s-name-label">Place or activity <span class="hint">· required</span></label>
@@ -176,17 +186,17 @@
       </div>
 
       <div class="field">
-        <label for="s-link">Link <span class="hint">· optional, e.g. the official site</span></label>
+        <label for="s-link" data-i18n-html="sLink">Link <span class="hint">· optional, e.g. the official site</span></label>
         <input id="s-link" name="link" type="url" inputmode="url" maxlength="500" placeholder="https://">
       </div>
 
       <div class="field">
-        <label for="s-note">Why it’s good <span class="hint">· optional</span></label>
+        <label for="s-note" data-i18n-html="sNote">Why it’s good <span class="hint">· optional</span></label>
         <textarea id="s-note" name="note" rows="3" maxlength="500"></textarea>
       </div>
 
       <div class="field">
-        <label for="s-email">Your email <span class="hint">· optional, if you want a reply</span></label>
+        <label for="s-email" data-i18n-html="sEmail">Your email <span class="hint">· optional, if you want a reply</span></label>
         <input id="s-email" name="email" type="email" autocomplete="email" inputmode="email" maxlength="254">
       </div>
 
@@ -196,8 +206,8 @@
       </div>
 
       <div class="dlg-actions">
-        <button class="btn ghost" type="button" id="suggest-cancel">Cancel</button>
-        <button class="btn" type="submit" id="suggest-submit">Send suggestion</button>
+        <button class="btn ghost" type="button" id="suggest-cancel" data-i18n="cancel">Cancel</button>
+        <button class="btn" type="submit" id="suggest-submit" data-i18n="sSend">Send suggestion</button>
       </div>
     </form>
   </dialog>
@@ -205,6 +215,9 @@
   <div class="toast" id="toast" role="status" aria-live="polite" hidden></div>
 
   <script src="data.js"></script>
+  <script src="data.zh.js"></script>
+  <script src="data.fr.js"></script>
+  <script src="i18n.js"></script>
   <script src="app.js"></script>
 </body>
 </html>

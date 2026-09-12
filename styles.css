@@ -85,6 +85,8 @@ button, input, select { font: inherit; color: inherit; }
   padding: 14px 0; font-size: 13px; color: var(--muted);
   border-bottom: 1px solid var(--line);
 }
+.topbar { flex-wrap: wrap; row-gap: 6px; }
+#season { white-space: nowrap; }
 .topbar .who { display: flex; gap: 8px; align-items: center; min-width: 0; }
 .topbar .who span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .linkish {
@@ -316,6 +318,36 @@ fieldset.field { border: 0; margin: 0; padding: 0; }
 .dlg-actions { display: flex; gap: 10px; justify-content: flex-end; }
 .hp { position: absolute; left: -9999px; width: 1px; height: 1px; overflow: hidden; }
 
+/* ---------- my plans ---------- */
+.topbar-right { display: flex; align-items: center; gap: 14px; min-width: 0; }
+.plans-link { font-weight: 700; color: var(--maple); text-decoration: none; white-space: nowrap; }
+.plans-link:hover { text-decoration: underline; }
+.my-plans {
+  margin-top: 16px; padding: 16px 18px; border-radius: var(--radius);
+  background: var(--maple-soft); border: 1px solid color-mix(in srgb, var(--maple) 30%, transparent);
+  display: grid; gap: 10px; scroll-margin-top: 16px;
+}
+.my-plans-head { display: flex; flex-wrap: wrap; align-items: baseline; gap: 4px 14px; }
+.my-plans-head h2 { margin: 0; font: 700 26px/1 var(--display); text-transform: uppercase; color: var(--maple); }
+.my-plans-head p { margin: 0; font-size: 14px; color: var(--muted); }
+.plan-list { list-style: none; margin: 0; padding: 0; display: grid; gap: 6px; }
+.plan {
+  display: grid; grid-template-columns: 110px 1fr auto auto; align-items: center; gap: 4px 14px;
+  background: var(--surface); border-radius: var(--radius-sm); padding: 8px 8px 8px 12px;
+}
+.plan-when { font: 600 15px/1.2 var(--display); letter-spacing: .04em; text-transform: uppercase; color: var(--maple); font-variant-numeric: tabular-nums; }
+.plan-what { font-weight: 600; color: var(--ink); text-decoration: none; }
+.plan-what:hover { text-decoration: underline; }
+.plan-n { font-size: 13px; color: var(--muted); white-space: nowrap; font-variant-numeric: tabular-nums; }
+.plan-cancel { padding: 6px 12px; }
+@media (max-width: 560px) {
+  .plan { grid-template-columns: 1fr auto; }
+  .plan-when { grid-column: 1; }
+  .plan-what { grid-column: 1; }
+  .plan-n { grid-column: 1; }
+  .plan-cancel { grid-column: 2; grid-row: 1 / span 3; }
+}
+
 /* ---------- quick links ---------- */
 .quicklinks { display: flex; flex-wrap: wrap; gap: 8px 18px; font-size: 15px; font-weight: 600; }
 .quicklinks a, .quicklinks .linkish { color: var(--lake); }
@@ -383,6 +415,12 @@ fieldset.field { border: 0; margin: 0; padding: 0; }
   width: min(560px, 100% - 24px); z-index: 20;
   background: var(--ink); color: var(--ground); border-radius: var(--radius-sm);
   padding: 12px 16px; font-size: 15px; box-shadow: var(--shadow);
+  display: flex; align-items: center; gap: 14px;
+}
+.toast span { flex: 1; }
+.toast-action {
+  flex: none; cursor: pointer; border: 1px solid currentColor; background: transparent; color: inherit;
+  border-radius: var(--radius-sm); padding: 6px 12px; font-weight: 700;
 }
 .toast.err { background: var(--maple); color: var(--on-accent); }
 

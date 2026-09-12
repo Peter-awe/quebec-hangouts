@@ -21,12 +21,22 @@
     counts: {},
     countsLoaded: false,
     profile: store.get('qh.profile', null),
-    mine: new Set(store.get('qh.mine', [])),
+    mine: loadPlans(),   // Map: 'activityId|date' → email used to sign up
     filter: 'all',
     busy: new Set(),
     pending: null,
     apiVersion: 0
   };
+
+  function loadPlans() {
+    const saved = store.get('qh.plans', null);
+    if (Array.isArray(saved)) return new Map(saved.filter((e) => Array.isArray(e) && e[0]).map((e) => [e[0], e[1] || '']));
+    // Older versions kept only the keys; assume the saved profile email.
+    const old = store.get('qh.mine', []);
+    const email = (store.get('qh.profile', null) || {}).email || '';
+    return new Map((Array.isArray(old) ? old : []).map((k) => [k, email]));
+  }
+  const savePlans = () => store.set('qh.plans', [...state.mine]);
 
   // ---------- dates (all as yyyy-mm-dd strings, Montréal time) ----------
   const todayISO = new Intl.DateTimeFormat('en-CA', { timeZone: TZ, year: 'numeric', month: '2-digit', day: '2-digit' }).format(new Date());
@@ -328,6 +338,7 @@
     }
     renderUpcoming();
     renderGroups();
+    renderMyPlans();
     renderSuggestAvailability();
   }
 
@@ -347,17 +358,20 @@
   async function send(act, iso, action) {
     const k = key(act.id, iso);
     if (state.busy.has(k)) return;
-    const before = { n: state.counts[k] || 0, mine: state.mine.has(k) };
+    const p = state.profile;
+    const before = { n: state.counts[k] || 0, mine: state.mine.has(k), email: state.mine.get(k) };
+    // Leave with the email this plan was made with, even if the profile email changed since.
+    const email = action === 'leave' && before.email ? before.email : p.email;
 
     // optimistic
     state.busy.add(k);
-    if (action === 'join' && !before.mine) { state.mine.add(k); state.counts[k] = before.n + 1; }
+    if (action === 'join' && !before.mine) { state.mine.set(k, email); state.counts[k] = before.n + 1; }
     if (action === 'leave' && before.mine) { state.mine.delete(k); state.counts[k] = Math.max(0, before.n - 1); }
     refreshDay(act, iso);
+    renderMyPlans();
 
     try {
-      const p = state.profile;
-      const body = JSON.stringify({ action, email: p.email, name: p.name || '', chat: p.chat || '', seats: p.seats || 0, website: p.website || '', activityId: act.id, activity: act.name, date: iso });
+      const body = JSON.stringify({ action, email, name: p.name || '', chat: p.chat || '', seats: p.seats || 0, website: p.website || '', activityId: act.id, activity: act.name, date: iso });
       let data;
       try {
         const res = await fetch(API, { method: 'POST', body });
@@ -373,19 +387,54 @@
       }
       if (!data.ok) throw Object.assign(new Error(data.error), { code: data.error });
       state.counts = data.counts || state.counts;
-      store.set('qh.mine', [...state.mine]);
+      savePlans();
       toast(action === 'join'
-        ? 'You’re in: ' + act.name + ', ' + longDate(iso) + '. Peter will email you a group-chat link once the day has company.'
-        : 'You left ' + act.name + ' on ' + longDate(iso) + '.');
+        ? 'You’re in: ' + act.name + ', ' + longDate(iso) + '. It’s listed under My plans at the top.'
+        : 'You left ' + act.name + ' on ' + longDate(iso) + '.',
+        false, { label: 'Undo', run: () => send(act, iso, action === 'join' ? 'leave' : 'join') });
     } catch (e) {
-      if (before.mine) state.mine.add(k); else state.mine.delete(k);
+      if (before.mine) state.mine.set(k, before.email); else state.mine.delete(k);
       state.counts[k] = before.n;
       toast(ERRORS[e.code] || 'Couldn’t reach the sign-up sheet. Check your connection and try again.', true);
     } finally {
       state.busy.delete(k);
       refreshDay(act, iso);
       renderUpcoming();
+      renderMyPlans();
     }
+  }
+
+  // ---------- my plans ----------
+  function renderMyPlans() {
+    const box = document.getElementById('my-plans');
+    const list = document.getElementById('my-plans-list');
+    const link = document.getElementById('my-plans-link');
+    let pruned = false;
+    const plans = [];
+    for (const k of state.mine.keys()) {
+      const [id, date] = k.split('|');
+      const act = ACTIVITIES.find((a) => a.id === id);
+      if (!act || date < todayISO) { state.mine.delete(k); pruned = true; continue; }
+      plans.push({ k, act, date });
+    }
+    if (pruned) savePlans();
+    plans.sort((a, b) => a.date.localeCompare(b.date));
+
+    box.hidden = !plans.length;
+    link.hidden = !plans.length;
+    link.textContent = 'My plans (' + plans.length + ')';
+    list.replaceChildren(...plans.map((pl) => {
+      const n = countFor(pl.act.id, pl.date);
+      return el('li', { class: 'plan' },
+        el('span', { class: 'plan-when', text: longDate(pl.date) }),
+        el('a', {
+          class: 'plan-what', href: '#act-' + pl.act.id, text: pl.act.name,
+          onclick: (ev) => { ev.preventDefault(); state.filter = 'all'; renderFilters(); renderGroups(); document.getElementById('act-' + pl.act.id).scrollIntoView({ behavior: 'smooth', block: 'start' }); }
+        }),
+        el('span', { class: 'plan-n', text: state.countsLoaded ? n + (n === 1 ? ' person going' : ' people going') : '' }),
+        el('button', { class: 'btn ghost plan-cancel', type: 'button', text: 'Cancel', 'aria-label': 'Cancel ' + pl.act.name + ' on ' + longDate(pl.date), onclick: () => send(pl.act, pl.date, 'leave') })
+      );
+    }));
   }
 
   // ---------- dialog ----------
@@ -691,13 +740,16 @@
 
   // ---------- toast ----------
   let toastTimer;
-  function toast(msg, isErr) {
+  function toast(msg, isErr, action) {
     const t = document.getElementById('toast');
-    t.textContent = msg;
-    t.className = 'toast' + (isErr ? ' err' : '');
+    t.replaceChildren(el('span', { text: msg }));
+    if (action) {
+      t.append(el('button', { class: 'toast-action', type: 'button', text: action.label, onclick: () => { t.hidden = true; clearTimeout(toastTimer); action.run(); } }));
+    }
+    t.className = 'toast' + (isErr ? ' err' : '') + (action ? ' has-action' : '');
     t.hidden = false;
     clearTimeout(toastTimer);
-    toastTimer = setTimeout(() => { t.hidden = true; }, isErr ? 7000 : 5000);
+    toastTimer = setTimeout(() => { t.hidden = true; }, action ? 9000 : isErr ? 7000 : 5000);
   }
 
   // "Montréal · Fall 2026", "Montréal · Winter 2026–27", computed from today's date in Montréal.
@@ -714,6 +766,7 @@
   document.getElementById('season').textContent = 'Montréal · ' + seasonLabel(todayISO);
   document.getElementById('checked-date').textContent = fmt(CHECKED, { month: 'long', day: 'numeric', year: 'numeric' });
   renderProfileBar();
+  renderMyPlans();
   renderFilters();
   renderGroups();
   renderDeals();

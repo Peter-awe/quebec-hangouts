@@ -21,8 +21,19 @@
   <div class="wrap">
     <div class="topbar">
       <span id="season">Montréal</span>
-      <span class="who" id="who"></span>
+      <span class="topbar-right">
+        <a href="#my-plans" id="my-plans-link" class="plans-link" hidden>My plans</a>
+        <span class="who" id="who"></span>
+      </span>
     </div>
+
+    <section class="my-plans" id="my-plans" aria-labelledby="my-plans-title" hidden>
+      <div class="my-plans-head">
+        <h2 id="my-plans-title">My plans</h2>
+        <p>Saved in this browser. Changed your mind? Cancel here.</p>
+      </div>
+      <ul class="plan-list" id="my-plans-list"></ul>
+    </section>
 
     <header class="masthead">
       <div class="head-grid">

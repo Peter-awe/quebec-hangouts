@@ -59,7 +59,7 @@
     let iso = start && start > todayISO ? start : todayISO;
     const end = addDays(iso, LOOKAHEAD_DAYS);
     while (iso <= end && out.length < DAYS_SHOWN) {
-      if (openOn(act, iso)) out.push({ date: iso });
+      if (openOn(act, iso)) out.push({ date: iso, note: (s.dayNotes || {})[toUTC(iso).getUTCDay()] });
       iso = addDays(iso, 1);
     }
     return out;
@@ -96,6 +96,14 @@
     }));
   }
 
+  // Court and rink line drawings for the CEPSUM cards (proportions from the regulation sizes).
+  const ART = {
+    tennis: '<svg viewBox="0 0 300 200"><rect width="300" height="200" fill="#2f6690"/><rect x="20" y="40" width="260" height="120" fill="#3a7bab"/><g fill="none" stroke="#fff" stroke-width="2.4"><rect x="20" y="40" width="260" height="120"/><line x1="20" y1="55" x2="280" y2="55"/><line x1="20" y1="145" x2="280" y2="145"/><line x1="80" y1="55" x2="80" y2="145"/><line x1="220" y1="55" x2="220" y2="145"/><line x1="80" y1="100" x2="220" y2="100"/><line x1="20" y1="100" x2="26" y2="100"/><line x1="274" y1="100" x2="280" y2="100"/></g><line x1="150" y1="30" x2="150" y2="170" stroke="#e9eef2" stroke-width="4"/></svg>',
+    badminton: '<svg viewBox="0 0 300 200"><rect width="300" height="200" fill="#1f5a44"/><rect x="20" y="41" width="260" height="118" fill="#2a7457"/><g fill="none" stroke="#fff" stroke-width="2.4"><rect x="20" y="41" width="260" height="118"/><line x1="20" y1="50" x2="280" y2="50"/><line x1="20" y1="150" x2="280" y2="150"/><line x1="112" y1="41" x2="112" y2="159"/><line x1="188" y1="41" x2="188" y2="159"/><line x1="35" y1="41" x2="35" y2="159"/><line x1="265" y1="41" x2="265" y2="159"/><line x1="20" y1="100" x2="112" y2="100"/><line x1="188" y1="100" x2="280" y2="100"/></g><line x1="150" y1="32" x2="150" y2="168" stroke="#f1f3ef" stroke-width="4"/></svg>',
+    rink: '<svg viewBox="0 0 300 200"><rect width="300" height="200" fill="#dce8ef"/><rect x="20" y="44" width="260" height="112" rx="37" fill="#f6fafc" stroke="#9fb3bf" stroke-width="3"/><g stroke-width="3"><line x1="150" y1="44" x2="150" y2="156" stroke="#c0301f"/><line x1="117" y1="44" x2="117" y2="156" stroke="#1c6590"/><line x1="183" y1="44" x2="183" y2="156" stroke="#1c6590"/><line x1="34" y1="52" x2="34" y2="148" stroke="#c0301f" stroke-width="2"/><line x1="266" y1="52" x2="266" y2="148" stroke="#c0301f" stroke-width="2"/></g><g fill="none" stroke="#c0301f" stroke-width="2"><circle cx="150" cy="100" r="20" stroke="#1c6590"/><circle cx="66" cy="72" r="15"/><circle cx="66" cy="128" r="15"/><circle cx="234" cy="72" r="15"/><circle cx="234" cy="128" r="15"/></g></svg>',
+    gym: '<svg viewBox="0 0 300 200"><rect width="300" height="200" fill="#16201b"/><g fill="#e6ece8"><rect x="60" y="96" width="180" height="8" rx="3"/><rect x="72" y="62" width="16" height="76" rx="4"/><rect x="92" y="72" width="12" height="56" rx="4"/><rect x="212" y="62" width="16" height="76" rx="4"/><rect x="196" y="72" width="12" height="56" rx="4"/></g><rect x="48" y="92" width="12" height="16" rx="3" fill="#c0301f"/><rect x="240" y="92" width="12" height="16" rx="3" fill="#c0301f"/></svg>'
+  };
+
   // ---------- rendering ----------
   function renderFilters() {
     const bar = document.getElementById('filter-bar');
@@ -127,10 +135,23 @@
 
   function renderCard(act) {
     const card = el('article', { class: 'card', id: 'act-' + act.id });
-    const fig = el('figure', {},
-      el('img', { src: act.img.src, alt: act.img.alt, loading: 'lazy', decoding: 'async', width: '900', height: '600' }),
-      el('figcaption', {}, el('a', { href: act.img.page, target: '_blank', rel: 'noopener' }, act.img.credit))
-    );
+    let fig;
+    if (act.img) {
+      fig = el('figure', {},
+        el('img', { src: act.img.src, alt: act.img.alt, loading: 'lazy', decoding: 'async', width: '900', height: '600' }),
+        el('figcaption', {}, el('a', { href: act.img.page, target: '_blank', rel: 'noopener' }, act.img.credit)));
+    } else if (act.board) {
+      // Restaurants: a chalkboard instead of someone else's food photo.
+      fig = el('figure', { class: 'board', 'aria-hidden': 'true' },
+        el('span', { class: 'board-kicker', text: act.board.kicker }),
+        el('span', { class: 'board-title', text: act.board.title }),
+        el('span', { class: 'board-rule' }),
+        el('span', { class: 'board-sub', text: act.board.sub }),
+        el('span', { class: 'board-price', text: act.board.price }));
+    } else {
+      fig = el('figure', { class: 'art art-' + act.art, 'aria-hidden': 'true' });
+      fig.innerHTML = ART[act.art] || '';
+    }
 
     const tags = el('div', { class: 'eyebrow' }, (act.tags || []).map((t) =>
       el('span', { class: 'tag' + (t.kind ? ' ' + t.kind : ''), text: t.label })));

@@ -6,6 +6,9 @@
  * schedule.type:
  *   'weekly' → days: [0=Sun … 6=Sat], optional from / to (yyyy-mm-dd), closed: [dates], extraOpen: [dates]
  *              or periods: [{ from, to, days }] when the pattern changes during the season
+ *              dayNotes: { weekday: 'short note' } shows e.g. a start time on that weekday
+ *
+ * Pictures: img (photo with credit) · board (restaurant chalkboard) · art ('tennis' | 'badminton' | 'rink' | 'gym')
  *   'dates'  → dates: [{ date, note }]
  */
 window.QH_DATA = {
@@ -13,6 +16,8 @@ window.QH_DATA = {
 
   CATEGORIES: [
     { id: 'nature', label: 'Mountains & lakes', note: 'Fall colour peak forecast: Laurentians 1st week of October · Mont-Orford and Montérégie 3rd week · Montréal 3rd–4th week' },
+    { id: 'eat', label: 'Where to eat', note: 'Sometimes the outing is just a really good meal' },
+    { id: 'cepsum', label: 'CEPSUM', note: 'UdeM’s sports centre, free for UdeM, Polytechnique and HEC students with a student card · 2100 boul. Édouard-Montpetit · weekdays 6:30–23:00, weekends 8:30–20:30' },
     { id: 'museums', label: 'Museums', note: 'Good on any day, great on a rainy one' },
     { id: 'events', label: 'Seasonal & shows', note: 'Games, concerts, lights and markets' },
     { id: 'snow', label: 'Snow', note: 'Ski season 2026–27' }
@@ -148,6 +153,28 @@ window.QH_DATA = {
       ]
     },
     {
+      id: 'acropole',
+      cat: 'nature',
+      name: 'L’Acropole des Draveurs',
+      local: 'Hautes-Gorges-de-la-Rivière-Malbaie National Park · Charlevoix',
+      blurb: 'Charlevoix’s famous summit hike: up through the forest to an Arctic-alpine top, with the Malbaie River far below. Rated difficult, and a weekend trip from Montréal.',
+      img: { src: 'assets/img/acropole.jpg', alt: 'View from the Acropole des Draveurs summit down the Malbaie River valley between steep cliffs', credit: 'Cephas · CC BY-SA 4.0 · cropped', page: 'https://commons.wikimedia.org/wiki/File:Acropole_des_Draveurs_05.jpg' },
+      tags: [{ label: 'Difficult', kind: 'limited' }, { label: 'Car needed', kind: 'limited' }, { label: 'Weekend trip' }],
+      facts: [
+        ['Trail', '11.2 km round trip · 800 m climb · 4 to 6 hours'],
+        ['Start time', 'From September 1, start between sunrise and noon. Everyone must be off the summit 3 hours before sunset.'],
+        ['Bring', 'Hiking boots, at least 2 L of water each, poles, warm layers (it’s usually 5–10 °C colder on top)'],
+        ['Getting there', 'Trailhead at Le Pin-Blanc campground (km 6). The park is 170 km from Québec City; in summer a mandatory shuttle runs between its two visitor centres.'],
+        ['Park entry', 'Sépaq day access, $10.30 per adult']
+      ],
+      schedule: { type: 'weekly', days: [0, 1, 2, 3, 4, 5, 6] },
+      sources: [
+        { label: 'Sépaq · Hautes-Gorges hiking trails', url: 'https://www.sepaq.com/pq/hgo/annexes/sentiers_pedestre.dot?language_id=1' },
+        { label: 'Sépaq · Hautes-Gorges access and operating periods', url: 'https://www.sepaq.com/pq/hgo/information.dot?language_id=1' },
+        { label: 'Sépaq · National park access rates', url: 'https://www.sepaq.com/pq/tarification-parcs-nationaux.dot' }
+      ]
+    },
+    {
       id: 'sbl',
       cat: 'nature',
       name: 'Laurentians Biology Station',
@@ -170,6 +197,132 @@ window.QH_DATA = {
         { label: 'SBL · Leisure activities', url: 'https://sbl.umontreal.ca/nos-activites/activites-de-loisirs/' },
         { label: 'SBL · Booking site', url: 'https://sbl.iro.umontreal.ca/' },
         { label: 'SBL · Territory', url: 'https://sbl.umontreal.ca/territoire-et-biodiversite/information-sur-le-territoire/' }
+      ]
+    },
+
+    // ---------------- Where to eat ----------------
+    {
+      id: 'yokato',
+      cat: 'eat',
+      name: 'Yokato Yokabai',
+      local: 'Ramen · Plateau-Mont-Royal',
+      blurb: 'Hakata-style tonkotsu ramen in a small Plateau shop that shares its space with the izakaya Ichigo Ichie. In the MICHELIN Guide, tagged “Worth queueing for”.',
+      board: { kicker: 'MICHELIN Guide', title: 'Yokato Yokabai', sub: 'Tonkotsu · Gomami · Vegetarian', price: '$$' },
+      tags: [{ label: 'MICHELIN Guide' }, { label: 'No reservations', kind: 'limited' }],
+      facts: [
+        ['Ramen', 'Tonkotsu (pork broth), Gomami (sesame broth), and a vegetarian ramen'],
+        ['Price', '$$ in the MICHELIN Guide'],
+        ['Hours', 'Mon–Wed 11:30–14:30 & 17:00–22:00 · Thu until 22:30 · Fri until 23:00 · Sat 11:30–23:00 · Sun 11:30–22:00'],
+        ['Lines', 'No reservations for the ramen side. The shop suggests 17:00–18:00 or 20:30–21:45 for a shorter wait.'],
+        ['Where', ['4185 rue Drolet · ', { metro: 'orange', station: 'Mont-Royal' }]]
+      ],
+      schedule: { type: 'weekly', days: [0, 1, 2, 3, 4, 5, 6] },
+      sources: [
+        { label: 'Yokato Yokabai · official site (hours, menu, reservations)', url: 'https://yoka.ca/' },
+        { label: 'MICHELIN Guide · Yokato Yokabai', url: 'https://guide.michelin.com/us/en/quebec/montreal_2433514/restaurant/yokato-yokabai' }
+      ]
+    },
+    {
+      id: 'affaire-ketchup',
+      cat: 'eat',
+      name: 'L’Affaire est Ketchup',
+      local: 'French bistro · Saint-Roch, Québec City',
+      blurb: 'A tiny Saint-Roch bistro serving “home cooking, reinvented” (their words), with a menu that changes and is written on a chalkboard. Worth building a Québec City day around.',
+      board: { kicker: 'Québec City', title: 'L’Affaire est Ketchup', sub: 'Menu on the chalkboard', price: '$$$' },
+      tags: [{ label: 'Reserve ahead', kind: 'limited' }, { label: 'Québec City' }],
+      facts: [
+        ['Price', '$$$ on their Facebook page'],
+        ['Reservations', 'Their page says to book ahead (“Réserver d’avance!!!”). Call 418-529-9020.'],
+        ['Hours', 'Not posted online. Confirm the day when you call.'],
+        ['Where', '46 rue Saint-Joseph Est, Québec (Saint-Roch)']
+      ],
+      schedule: { type: 'weekly', days: [0, 1, 2, 3, 4, 5, 6] },
+      sources: [
+        { label: 'L’Affaire est Ketchup · Facebook page (address, phone, price, reservations)', url: 'https://www.facebook.com/laffaireest.ketchup/' },
+        { label: 'Frommer’s · L’Affaire est Ketchup (chalkboard menu)', url: 'https://www.frommers.com/destinations/quebec-city/restaurants/laffaire-est-ketchup/' }
+      ]
+    },
+
+    // ---------------- CEPSUM ----------------
+    {
+      id: 'cepsum-skate',
+      cat: 'cepsum',
+      name: 'Free skating',
+      local: 'CEPSUM arena',
+      blurb: 'Public skating to music, with supervisors on the ice. Forward skating only.',
+      art: 'rink',
+      tags: [{ label: 'Free for UdeM · Poly · HEC', kind: 'free' }, { label: 'Book 2 days ahead' }],
+      facts: [
+        ['Price', 'UdeM, Poly and HEC students free · non-members 16+ $7 · under 15 $4'],
+        ['Fall times', 'Wed 12:05–13:35 · Fri 16:15–17:45 · Sun 11:55–12:50 (until Dec 20)'],
+        ['Booking', 'Reserve up to 2 days ahead, from 19:00: CEPSUM online portal, 514-343-6150, or the front desk'],
+        ['Season', 'Free skating runs September to April']
+      ],
+      schedule: { type: 'weekly', days: [0, 3, 5], to: '2026-12-20', dayNotes: { 3: '12:05', 5: '16:15', 0: '11:55' }, endedNote: 'The fall skating schedule ended December 20. Check CEPSUM for the winter times.' },
+      sources: [
+        { label: 'CEPSUM · Pratique libre (Patinage: prices, times, booking)', url: 'https://www.cepsum.umontreal.ca/pratique-libre' }
+      ]
+    },
+    {
+      id: 'cepsum-badminton',
+      cat: 'cepsum',
+      name: 'Badminton',
+      local: 'CEPSUM courts',
+      blurb: 'Book a court and play. Court time is part of the free access UdeM, Poly and HEC students get as CEPSUM members.',
+      art: 'badminton',
+      tags: [{ label: 'Included for UdeM · Poly · HEC', kind: 'free' }, { label: 'Members book', kind: 'limited' }],
+      facts: [
+        ['Who', 'UdeM, Poly and HEC students are members automatically. Non-members can’t book courts; a member can buy a friend a $20 guest card, but ask the front desk whether it covers court time.'],
+        ['When', 'Every day during CEPSUM opening hours (some exceptions)'],
+        ['Booking', 'Up to 2 days ahead, from 19:00: CEPSUM online portal, 514-343-6150, or the front desk'],
+        ['Gear', 'Equipment rental is available at CEPSUM']
+      ],
+      schedule: { type: 'weekly', days: [0, 1, 2, 3, 4, 5, 6] },
+      sources: [
+        { label: 'CEPSUM · Pratique libre (racquet sports: times, booking)', url: 'https://www.cepsum.umontreal.ca/pratique-libre' },
+        { label: 'CEPSUM · Campus students (free access, what’s included)', url: 'https://www.cepsum.umontreal.ca/abonnements/etudiants-du-campus' }
+      ]
+    },
+    {
+      id: 'cepsum-tennis',
+      cat: 'cepsum',
+      name: 'Tennis',
+      local: 'CEPSUM courts',
+      blurb: 'Same deal as badminton: student members book court time as part of their free access. If you’d rather learn first, there’s an adult beginner course.',
+      art: 'tennis',
+      tags: [{ label: 'Included for UdeM · Poly · HEC', kind: 'free' }, { label: 'Members book', kind: 'limited' }],
+      facts: [
+        ['Who', 'UdeM, Poly and HEC students are members automatically. Non-members can’t book courts; a member can buy a friend a $20 guest card, but ask the front desk whether it covers court time.'],
+        ['When', 'Every day during CEPSUM opening hours (some exceptions)'],
+        ['Booking', 'Up to 2 days ahead, from 19:00: CEPSUM online portal, 514-343-6150, or the front desk'],
+        ['Lessons', 'Adult Level 1, fall session from Sept 14: 13–14 sessions of 1 h 15, Mon 17:30, Wed 18:45 or Thu 20:15 · members $280–302']
+      ],
+      schedule: { type: 'weekly', days: [0, 1, 2, 3, 4, 5, 6] },
+      sources: [
+        { label: 'CEPSUM · Pratique libre (racquet sports: times, booking)', url: 'https://www.cepsum.umontreal.ca/pratique-libre' },
+        { label: 'CEPSUM · Tennis Level 1', url: 'https://www.cepsum.umontreal.ca/activite/tennis-niveau-1' }
+      ]
+    },
+    {
+      id: 'cepsum-gym',
+      cat: 'cepsum',
+      name: 'Gym',
+      local: 'CEPSUM training room',
+      blurb: 'The weights and cardio room isn’t part of free student access: you add a gym pass, or pay per visit. Check the live crowd meter to pick a quiet time.',
+      art: 'gym',
+      tags: [{ label: 'Pass needed' }, { label: 'Live crowd meter' }],
+      facts: [
+        ['Student pass', '$110 + tax for 4 months (paid at once) or $18.33 + tax a month for 12 months'],
+        ['One visit', '$12 for a member'],
+        ['Bring a friend', 'Guest card $20 (16+), includes gym access and basic equipment rental; 5 cards for $91'],
+        ['Hours', 'CEPSUM: weekdays 6:30–23:00, weekends 8:30–20:30'],
+        ['Crowds', [{ link: 'https://www.cepsum.umontreal.ca/achalandage-salle-d-entrainement', label: 'Live crowd meter' }]]
+      ],
+      schedule: { type: 'weekly', days: [0, 1, 2, 3, 4, 5, 6] },
+      sources: [
+        { label: 'CEPSUM · Campus students (gym pass prices)', url: 'https://www.cepsum.umontreal.ca/abonnements/etudiants-du-campus' },
+        { label: 'CEPSUM · Guest cards', url: 'https://www.cepsum.umontreal.ca/cartons-dinvite' },
+        { label: 'CEPSUM · Live crowd meter', url: 'https://www.cepsum.umontreal.ca/achalandage-salle-d-entrainement' }
       ]
     },
 
@@ -337,7 +490,7 @@ window.QH_DATA = {
     },
     {
       id: 'cepsum-climb',
-      cat: 'events',
+      cat: 'cepsum',
       name: 'Try climbing night',
       local: 'CEPSUM · Université de Montréal sports centre',
       blurb: 'A free first-time climbing session: staff handle the ropes, gear is provided, no certification needed. Open to members and non-members.',

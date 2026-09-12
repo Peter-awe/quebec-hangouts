@@ -23,7 +23,7 @@ window.QH_DATA = {
 
   CATEGORIES: [
     { id: 'nature', label: 'Mountains & lakes', note: 'Fall colour peak forecast: Laurentians 1st week of October · Mont-Orford and Montérégie 3rd week · Montréal 3rd–4th week' },
-    { id: 'eat', label: 'Where to eat', note: 'Sometimes the outing is just a really good meal' },
+    { id: 'eat', label: 'Food', note: 'Sometimes the outing is just a really good meal' },
     { id: 'cepsum', label: 'CEPSUM', note: 'UdeM’s sports centre, free for UdeM, Polytechnique and HEC students with a student card · 2100 boul. Édouard-Montpetit · weekdays 6:30–23:00, weekends 8:30–20:30' },
     { id: 'climb', label: 'Climbing', note: 'Peter’s Friday-night habit. Come along.' },
     { id: 'museums', label: 'Museums', note: 'Good on any day, great on a rainy one' },

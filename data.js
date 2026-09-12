@@ -27,7 +27,7 @@ window.QH_DATA = {
     { id: 'nature', label: 'Mountains & lakes', note: 'Fall colour peak forecast: Laurentians 1st week of October · Mont-Orford and Montérégie 3rd week · Montréal 3rd–4th week' },
     { id: 'eat', label: 'Food', note: 'Sometimes the outing is just a really good meal' },
     { id: 'cepsum', label: 'CEPSUM', note: 'UdeM’s sports centre, free for UdeM, Polytechnique and HEC students with a student card · 2100 boul. Édouard-Montpetit · weekdays 6:30–23:00, weekends 8:30–20:30' },
-    { id: 'climb', label: 'Climbing', note: 'Peter’s Friday-night habit. Come along.' },
+    { id: 'climb', label: 'Climbing', note: 'Qiwei’s Friday-night habit. Come along.' },
     { id: 'museums', label: 'Museums', note: 'Good on any day, great on a rainy one' },
     { id: 'events', label: 'Seasonal & shows', note: 'Games, concerts, lights and markets' },
     { id: 'snow', label: 'Snow', note: 'Ski season 2026–27' }
@@ -358,7 +358,7 @@ window.QH_DATA = {
       cat: 'climb',
       name: 'Friday climbing at Bloc Shop',
       local: 'Bloc Shop Mile-Ex · bouldering',
-      blurb: 'Peter climbs here most Friday nights, because Fridays cost $10 all day. It’s bouldering: no ropes, walls 3 to 4.5 m high over thick mats, and no reservation. First-timers welcome.',
+      blurb: 'Qiwei climbs here most Friday nights, because Fridays cost $10 all day. It’s bouldering: no ropes, walls 3 to 4.5 m high over thick mats, and no reservation. First-timers welcome.',
       art: 'boulder',
       tags: [{ label: '$10 on Fridays', kind: 'free' }, { label: 'No reservation' }, { label: 'Beginners welcome' }],
       facts: [

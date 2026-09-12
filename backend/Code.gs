@@ -7,10 +7,10 @@
  * Public GET  → headcounts only: { ok, today, counts: { "<activityId>|<yyyy-mm-dd>": n } } (JSONP with ?callback=)
  * Public POST → join / leave one activity on one date, or suggest a place / movie.
  * Trigger     → sendPendingNotifications() every 5 minutes (installed by setup()): 30 minutes after a
- *               sign-up that wasn't cancelled, emails the participant Peter's contact and the organizer a summary.
+ *               sign-up that wasn't cancelled, emails the participant Qiwei's contact and the organizer a summary.
  *               The participant email follows the page language (English, French or Chinese).
  *               Cancelling after that email went out also tells the organizer, who may already have added them to a chat.
- * QR.gs       → optional second file with Peter's WhatsApp / WeChat QR images and links (kept out of git).
+ * QR.gs       → optional second file with Qiwei's WhatsApp / WeChat QR images and links (kept out of git).
  *               Emails stay in the Sheet; they are never returned to the page.
  */
 
@@ -44,7 +44,7 @@ function setup() {
 /**
  * Runs every 5 minutes (and at most every 2 minutes on page loads, as a backup).
  * For sign-ups at least NOTIFY_DELAY_MIN old and still active: emails each participant a confirmation
- * with Peter's WhatsApp / WeChat, and the organizer one summary per activity and date.
+ * with Qiwei's WhatsApp / WeChat, and the organizer one summary per activity and date.
  * Sign-ups cancelled in the meantime are skipped. Only rows marked 'pending' are considered.
  */
 function sendPendingNotifications() {
@@ -167,7 +167,7 @@ function doPost(e) {
 
   const lock = LockService.getScriptLock();
   lock.waitLock(10000);
-  let lateCancel = null;   // the row, when someone cancels after already getting Peter's contact
+  let lateCancel = null;   // the row, when someone cancels after already getting Qiwei's contact
   try {
     const sh = sheet_();
     const rows = sh.getDataRange().getValues();
@@ -225,10 +225,10 @@ const EMAIL_COPY = {
   en: {
     hi: function (n) { return n ? 'Hi ' + n + ',' : 'Hi,'; },
     youreIn: function (place, date, going) { return 'You’re in for ' + place + ' on ' + date + '. ' + going + (going === 1 ? ' person is' : ' people are') + ' going so far.'; },
-    addPeter: function (apps) { return 'Add Peter, the organizer, on ' + apps + ' so he can put you in the group chat'; },
+    addHost: function (apps) { return 'Add Qiwei, the organizer, on ' + apps + ' so he can put you in the group chat'; },
     stop: '. ', colon: ':', or: ' or ',
     howTo: 'On your phone, tap the button; on a computer, scan the code:',
-    noApps: 'Peter, the organizer, will get in touch to set up the group chat.',
+    noApps: 'Qiwei, the organizer, will get in touch to set up the group chat.',
     details: 'Prices, hours and official links: ',
     linkText: function (place) { return place + ' on Québec Hangouts'; },
     detailsText: 'Details: ',
@@ -236,15 +236,15 @@ const EMAIL_COPY = {
     safety: 'These are informal outings: everyone pays their own way and looks after their own safety.',
     app: { WhatsApp: 'WhatsApp', WeChat: 'WeChat' },
     open: function (app) { return 'Open ' + app; },
-    alt: function (app) { return 'Peter on ' + app; }
+    alt: function (app) { return 'Qiwei on ' + app; }
   },
   fr: {
     hi: function (n) { return n ? 'Bonjour ' + n + ',' : 'Bonjour,'; },
     youreIn: function (place, date, going) { return 'C’est confirmé : ' + place + ', le ' + date + '. ' + going + (going === 1 ? ' personne inscrite' : ' personnes inscrites') + ' pour l’instant.'; },
-    addPeter: function (apps) { return 'Ajoute Peter, l’organisateur, sur ' + apps + ' pour qu’il t’ajoute à la discussion de groupe'; },
+    addHost: function (apps) { return 'Ajoute Qiwei, l’organisateur, sur ' + apps + ' pour qu’il t’ajoute à la discussion de groupe'; },
     stop: '. ', colon: ' :', or: ' ou ',
     howTo: 'Sur ton téléphone, touche le bouton; sur un ordinateur, scanne le code :',
-    noApps: 'Peter, l’organisateur, te contactera pour créer la discussion de groupe.',
+    noApps: 'Qiwei, l’organisateur, te contactera pour créer la discussion de groupe.',
     details: 'Prix, heures et liens officiels : ',
     linkText: function (place) { return place + ' sur Québec Hangouts'; },
     detailsText: 'Détails : ',
@@ -252,15 +252,15 @@ const EMAIL_COPY = {
     safety: 'Ce sont des sorties informelles : chacun paie sa part et est responsable de sa propre sécurité.',
     app: { WhatsApp: 'WhatsApp', WeChat: 'WeChat' },
     open: function (app) { return 'Ouvrir ' + app; },
-    alt: function (app) { return 'Peter sur ' + app; }
+    alt: function (app) { return 'Qiwei sur ' + app; }
   },
   zh: {
     hi: function (n) { return n ? '你好，' + n + '：' : '你好：'; },
     youreIn: function (place, date, going) { return '你已报名 ' + place + '，时间是 ' + date + '。目前有 ' + going + ' 人报名。'; },
-    addPeter: function (apps) { return '请加组织者 Peter 的' + apps + '，他会拉你进群'; },
+    addHost: function (apps) { return '请加组织者 Qiwei 的' + apps + '，他会拉你进群'; },
     stop: '。', colon: '：', or: ' 或 ',
     howTo: '手机上直接点按钮，电脑上用手机扫码：',
-    noApps: '组织者 Peter 会联系你，拉你进群。',
+    noApps: '组织者 Qiwei 会联系你，拉你进群。',
     details: '价格、开放时间和官方链接：',
     linkText: function (place) { return '在 Québec Hangouts 上查看' + place; },
     detailsText: '详情：',
@@ -268,7 +268,7 @@ const EMAIL_COPY = {
     safety: '这些是朋友之间自发组织的活动，费用自理，注意安全。',
     app: { WhatsApp: 'WhatsApp', WeChat: '微信' },
     open: function (app) { return '打开' + app; },
-    alt: function (app) { return 'Peter 的' + app + '二维码'; }
+    alt: function (app) { return 'Qiwei 的' + app + '二维码'; }
   }
 };
 
@@ -312,7 +312,7 @@ function sendParticipantEmail_(m) {
     '<div style="font-family:Arial,Helvetica,\'PingFang SC\',\'Microsoft YaHei\',sans-serif;font-size:15px;line-height:1.6;color:#16201b;max-width:560px">' +
     '<p>' + esc_(c.hi(m.name)) + '</p>' +
     '<p>' + c.youreIn('<b>' + esc_(place) + '</b>', '<b>' + when + '</b>', m.going) + '</p>' +
-    (apps.length ? '<p>' + c.addPeter(appNames) + c.stop + c.howTo + '</p>' +
+    (apps.length ? '<p>' + c.addHost(appNames) + c.stop + c.howTo + '</p>' +
       '<table cellpadding="0" cellspacing="0" role="presentation"><tr>' + cells + '</tr></table>' : '<p>' + c.noApps + '</p>') +
     '<p>' + c.details + '<a href="' + link + '">' + esc_(c.linkText(place)) + '</a></p>' +
     '<p style="color:#57635d;font-size:13px">' + c.change + (lang === 'zh' ? '' : ' ') + c.safety + '</p>' +
@@ -320,7 +320,7 @@ function sendParticipantEmail_(m) {
 
   const text = c.hi(m.name) + '\n\n' +
     c.youreIn(place, when, m.going) + '\n\n' +
-    (apps.length ? c.addPeter(appNames) + c.colon + '\n' + apps.map(function (a) { return c.app[a.label] + c.colon + ' ' + a.data.link; }).join('\n') + '\n\n' : '') +
+    (apps.length ? c.addHost(appNames) + c.colon + '\n' + apps.map(function (a) { return c.app[a.label] + c.colon + ' ' + a.data.link; }).join('\n') + '\n\n' : '') +
     c.detailsText + link + '\n\n' +
     c.change;
 

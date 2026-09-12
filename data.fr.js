@@ -9,7 +9,7 @@ window.QH_FR = {
     nature: { label: 'Montagnes et lacs', note: 'Prévisions du pic des couleurs d’automne : Laurentides 1re semaine d’octobre · Mont-Orford et Montérégie 3e semaine · Montréal 3e–4e semaine' },
     eat: { label: 'Bouffe', note: 'Parfois, la sortie, c’est juste un très bon repas' },
     cepsum: { label: 'CEPSUM', note: 'Le centre sportif de l’UdeM, gratuit pour les étudiants de l’UdeM, de Polytechnique et de HEC avec leur carte étudiante · 2100, boul. Édouard-Montpetit · en semaine 6 h 30–23 h, la fin de semaine 8 h 30–20 h 30' },
-    climb: { label: 'Escalade', note: 'La routine du vendredi soir de Peter. Viens avec nous.' },
+    climb: { label: 'Escalade', note: 'La routine du vendredi soir de Qiwei. Viens avec nous.' },
     museums: { label: 'Musées', note: 'Bien n’importe quel jour, parfait quand il pleut' },
     events: { label: 'Saisons et spectacles', note: 'Matchs, concerts, lumières et marchés' },
     snow: { label: 'Neige', note: 'Saison de ski 2026–27' }
@@ -229,7 +229,7 @@ window.QH_FR = {
     'blocshop-mileex': {
       name: 'Escalade du vendredi au Bloc Shop',
       local: 'Bloc Shop Mile-Ex · bloc',
-      blurb: 'Peter grimpe ici presque tous les vendredis soir, parce que le vendredi coûte 10 $ toute la journée. C’est du bloc : pas de corde, des murs de 3 à 4,5 m au-dessus d’épais tapis, et pas de réservation. Les débutants sont les bienvenus.',
+      blurb: 'Qiwei grimpe ici presque tous les vendredis soir, parce que le vendredi coûte 10 $ toute la journée. C’est du bloc : pas de corde, des murs de 3 à 4,5 m au-dessus d’épais tapis, et pas de réservation. Les débutants sont les bienvenus.',
       tags: ['10 $ le vendredi', 'Sans réservation', 'Débutants bienvenus'],
       facts: [
         ['Vendredis', '10 $ toute la journée (l’offre « Vendredix », achetée sur place) au lieu de 19 $ · prix avant taxes'],

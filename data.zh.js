@@ -9,7 +9,7 @@ window.QH_ZH = {
     nature: { label: '山水', note: '秋叶最佳观赏期预测：劳伦琴山区 10 月第 1 周 · 奥福德山和蒙特雷吉（Montérégie）第 3 周 · 蒙特利尔第 3–4 周' },
     eat: { label: '美食', note: '有时候出门就是为了吃一顿好的' },
     cepsum: { label: 'CEPSUM', note: '蒙特利尔大学体育中心，UdeM、Polytechnique 和 HEC 学生凭学生证免费 · 2100 boul. Édouard-Montpetit · 工作日 6:30–23:00，周末 8:30–20:30' },
-    climb: { label: '攀岩', note: 'Peter 每周五晚上的固定节目，一起来。' },
+    climb: { label: '攀岩', note: 'Qiwei 每周五晚上的固定节目，一起来。' },
     museums: { label: '博物馆', note: '哪天去都行，下雨天尤其合适' },
     events: { label: '节庆演出', note: '球赛、音乐会、灯光和集市' },
     snow: { label: '冰雪', note: '2026–27 雪季' }
@@ -228,7 +228,7 @@ window.QH_ZH = {
     'blocshop-mileex': {
       name: 'Bloc Shop 周五攀岩',
       local: 'Bloc Shop Mile-Ex · 抱石',
-      blurb: 'Peter 几乎每个周五晚上都在这里爬，因为周五全天只要 $10。这里是抱石：不用绳子，岩壁高 3 到 4.5 米，下面铺着厚垫子，不用预约。欢迎第一次来的新手。',
+      blurb: 'Qiwei 几乎每个周五晚上都在这里爬，因为周五全天只要 $10。这里是抱石：不用绳子，岩壁高 3 到 4.5 米，下面铺着厚垫子，不用预约。欢迎第一次来的新手。',
       tags: ['周五 $10', '无需预约', '欢迎新手'],
       facts: [
         ['周五', '全天 $10（“Vendredix”优惠，现场购买），平时 $19 · 价格不含税'],

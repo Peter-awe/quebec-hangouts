@@ -367,18 +367,22 @@ function dateText_(v) {
   return v instanceof Date ? Utilities.formatDate(v, TZ, 'yyyy-MM-dd') : String(v);
 }
 
-/** At most 20 actions per email per hour, and 120 per minute overall. */
+/**
+ * At most 40 changes per email per clock hour, and 120 per minute overall.
+ * Fixed windows: an attempt never extends the lock (the old sliding window could lock someone out indefinitely).
+ */
 function rateOk_(email) {
   const cache = CacheService.getScriptCache();
-  const minuteKey = 'g:' + Utilities.formatDate(new Date(), TZ, 'yyyyMMddHHmm');
+  const now = new Date();
+  const minuteKey = 'g:' + Utilities.formatDate(now, TZ, 'yyyyMMddHHmm');
   const g = parseInt(cache.get(minuteKey) || '0', 10);
   if (g >= 120) return false;
   cache.put(minuteKey, String(g + 1), 120);
 
-  const key = 'e:' + email;
+  const key = 'e:' + email + ':' + Utilities.formatDate(now, TZ, 'yyyyMMddHH');
   const n = parseInt(cache.get(key) || '0', 10);
-  if (n >= 20) return false;
-  cache.put(key, String(n + 1), 3600);
+  if (n >= 40) return false;
+  cache.put(key, String(n + 1), 3700);
   return true;
 }
 

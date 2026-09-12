@@ -387,7 +387,8 @@
     date: 'That day is no longer open for sign-ups. Pick another one.',
     rate: 'Too many changes in a short time. Wait a few minutes and try again.',
     activity: 'Something is off with this activity. Refresh the page and try again.',
-    unconfirmed: 'Your browser blocked the reply from the sign-up sheet, so this couldn’t be confirmed. Try again in a private window or with ad-blocking and CORS extensions turned off.'
+    unconfirmed: 'Your browser blocked the reply from the sign-up sheet, so this couldn’t be confirmed. Try again in a private window or with ad-blocking and CORS extensions turned off.',
+    network: 'That change didn’t go through. You may have made a lot of changes this hour; wait a few minutes and try again.'
   };
 
   function toggle(act, iso) {

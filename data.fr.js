@@ -111,15 +111,17 @@ window.QH_FR = {
       local: 'Parc national des Hautes-Gorges-de-la-Rivière-Malbaie · Charlevoix',
       blurb: 'La randonnée au sommet la plus connue de Charlevoix : on monte à travers la forêt jusqu’à un sommet arctique-alpin, avec la rivière Malbaie tout en bas. Niveau difficile, et une escapade de fin de semaine depuis Montréal.',
       alt: 'Vue du sommet de l’Acropole des Draveurs sur la vallée de la rivière Malbaie, entre des falaises abruptes',
-      tags: ['Difficile', 'Auto nécessaire', 'Escapade de fin de semaine'],
+      tags: ['Difficile', 'Auto nécessaire', 'Escapade de fin de semaine', 'Sentier ouvert jusqu’au 12 oct.'],
       facts: [
         ['Sentier', '11,2 km aller-retour · 800 m de dénivelé · 4 à 6 heures'],
-        ['Heure de départ', 'À partir du 1er septembre, départ entre le lever du soleil et midi. Tout le monde doit avoir quitté le sommet 3 heures avant le coucher du soleil.'],
+        ['Saison', 'Normalement ouvert du deuxième vendredi de juin au lundi de l’Action de grâce (12 octobre 2026), selon l’état du sentier'],
+        ['Heure de départ', 'En septembre, départ entre le lever du soleil et midi, et descente du sommet au plus tard à 15 h 30. Du 1er octobre à la fermeture, départ avant midi et descente au plus tard à 15 h. Un garde-parc ferme le sentier.'],
         ['À apporter', 'Bottes de randonnée, au moins 2 L d’eau par personne, bâtons, vêtements chauds (il fait habituellement 5 à 10 °C de moins au sommet)'],
         ['Accès', 'Départ du sentier au camping Le Pin-Blanc (km 6). Le parc est à 170 km de Québec; en été, une navette obligatoire relie ses deux centres d’accueil.'],
         ['Droits d’accès', 'Accès quotidien Sépaq, 10,30 $ par adulte']
       ],
-      sources: ['Sépaq · Sentiers de randonnée des Hautes-Gorges', 'Sépaq · Accès et périodes d’exploitation des Hautes-Gorges', 'Sépaq · Tarifs d’accès aux parcs nationaux']
+      endedNote: 'Le sentier est fermé pour la saison depuis le lundi de l’Action de grâce (12 octobre). Il rouvre normalement le deuxième vendredi de juin.',
+      sources: ['Sépaq · Acropole-des-Draveurs : renseignements importants (saison, heures de départ et de descente)', 'Sépaq · Sentiers de randonnée des Hautes-Gorges', 'Sépaq · Accès et périodes d’exploitation des Hautes-Gorges', 'Sépaq · Tarifs d’accès aux parcs nationaux']
     },
     'sbl': {
       name: 'Station de biologie des Laurentides',
@@ -131,7 +133,7 @@ window.QH_FR = {
         ['Nuit + repas', 'Étudiants UdeM, Poly et HEC 52 $ · autres étudiants 88,55 $ · autres personnes 123,50 $ (dîner, souper et un lit en chambre double; taxes en sus)'],
         ['Visite d’un jour', 'Avec dîner : étudiants UdeM, Poly et HEC 16 $ · autres étudiants 27,25 $ · autres personnes 38 $'],
         ['À faire', 'Canot ou chaloupe, sentiers de randonnée, feu de camp, volleyball de plage, ping-pong, jeux de société'],
-        ['Accès', '592, chemin du lac Croche, Saint-Hippolyte. Aucun arrêt de transport en commun sur ce chemin, alors on fait du covoiturage.'],
+        ['Accès', '592, chemin du lac Croche, Saint-Hippolyte. Aucun arrêt de transport en commun sur ce chemin, alors il faut une auto.'],
         ['Réservation', 'Appelle au 450-563-3111 (poste 1) ou écris à sbl@iro.umontreal.ca. Les groupes de plus de 20 personnes doivent réserver par courriel.']
       ],
       endedNote: 'Fermé pour la saison après le 1er novembre.',
@@ -253,7 +255,7 @@ window.QH_FR = {
         ['Accès', ['859, rue Sherbrooke Ouest · ', { metro: 'green', station: 'McGill' }, ' ou ', { metro: 'green', station: 'Peel' }]],
         ['Bon à savoir', 'Les groupes de 7 personnes ou plus doivent réserver d’avance et payer des frais de groupe. Pas d’ascenseur, pas de climatisation, pas de nourriture dans les salles.']
       ],
-      sources: ['Redpath · Visite (entrée, heures)', 'Redpath · FAQ (collections, transport, règles)']
+      sources: ['Redpath · Visite (entrée, heures)', 'Redpath · FAQ (collections, transport, règles)', 'McGill · Dates importantes (congés 2026–27)']
     },
     'mbam': {
       name: 'Musée des beaux-arts de Montréal',
@@ -304,7 +306,7 @@ window.QH_FR = {
       alt: 'Une lanterne en forme de dragon illuminée au-dessus du lac de Rêve, au Jardin de Chine, la nuit',
       tags: ['Jusqu’au 1er nov.', 'Billets horodatés'],
       facts: [
-        ['Heures du soir', '18 sept.–3 oct. : 19 h–21 h · 4–20 oct. : 18 h 30–21 h · 21 oct.–1er nov. : 18 h–21 h'],
+        ['Heures du soir', '3–17 sept. : 19 h 30–21 h · 18 sept.–3 oct. : 19 h–21 h · 4–20 oct. : 18 h 30–21 h · 21 oct.–1er nov. : 18 h–21 h'],
         ['Billets', 'Réserve un billet horodaté. Droits d’entrée 2026 pour un musée d’Espace pour la vie : étudiants 18 ans et plus 19 $ (14,75 $ pour les résidents de la région de Montréal), adultes 25,50 $'],
         ['Bon à savoir', 'Beau temps, mauvais temps'],
         ['Accès', ['4101, rue Sherbrooke Est · ', { metro: 'green', station: 'Pie-IX' }]]

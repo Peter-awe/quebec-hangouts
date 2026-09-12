@@ -12,9 +12,13 @@ Pick a place and a day around Montréal. When other people pick the same one, we
 - `i18n.js`: interface text in English, French and Chinese. The page picks the visitor's browser language (French or Chinese, otherwise English), and the EN / FR / 中文 switch at the top overrides it. `?lang=fr` or `?lang=zh` in a link opens that language.
 - `backend/Code.gs`: a Google Apps Script web app bound to a private Google Sheet. It stores sign-ups (email, optional name, chat app, page language) and returns headcounts only.
 
+## Releasing a change
+
+Bump the `?v=` value on the CSS and script tags in `index.html` whenever you change those files, so returning visitors don't pair a cached old script with the new page.
+
 ## Adding a place
 
-Add an object to `ACTIVITIES` in `data.js` with an `id` (lowercase letters, digits and dashes), a category, facts, a `schedule` and at least one source. For the picture, use one of: `img` (a 1200×800 photo in `assets/img/`, with its author and license in `img.credit`), `board` (the chalkboard used for restaurants) or `art` (`tennis`, `badminton`, `rink`, `gym`, `boulder`).
+Add an object to `ACTIVITIES` in `data.js` with an `id` (lowercase letters, digits and dashes), a category, facts, a `schedule` and at least one source. Give seasonal places a `to` date (and `closed` dates) so the date picker never offers a day they are closed. A tag with `left: 'dates'` or `left: 'games'` shows a live count of what is still ahead. Add the same entry, keyed by id, to `data.fr.js` and `data.zh.js`. For the picture, use one of: `img` (a 1200×800 photo in `assets/img/`, with its author and license in `img.credit`), `board` (the chalkboard used for restaurants) or `art` (`tennis`, `badminton`, `rink`, `gym`, `boulder`).
 
 ## Photos
 

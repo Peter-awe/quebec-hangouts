@@ -215,8 +215,13 @@
       fig.innerHTML = ART[act.art] || '';
     }
 
-    const tags = el('div', { class: 'eyebrow' }, (act.tags || []).map((t) =>
-      el('span', { class: 'tag' + (t.kind ? ' ' + t.kind : ''), text: t.label })));
+    // left: 'dates' | 'games' counts what's still ahead, so the tag never goes stale; hidden once nothing is left.
+    const tags = el('div', { class: 'eyebrow' }, (act.tags || []).map((tg) => {
+      const n = tg.left ? upcomingDays(act).length : null;
+      if (n === 0) return null;
+      const label = tg.left === 'dates' ? t('datesLeft', n) : tg.left === 'games' ? t('gamesLeft', n) : tg.label;
+      return el('span', { class: 'tag' + (tg.kind ? ' ' + tg.kind : ''), text: label });
+    }));
 
     const facts = el('dl', { class: 'facts' });
     for (const [label, value] of act.facts) facts.append(el('dt', { text: label }), el('dd', {}, factValue(value)));
@@ -446,7 +451,7 @@
   async function send(act, iso, action) {
     const k = key(act.id, iso);
     if (state.busy.has(k)) return;
-    const p = state.profile;
+    const p = state.profile || {};
     const before = { n: state.counts[k] || 0, mine: state.mine.has(k), email: state.mine.get(k) };
     // Leave with the email this plan was made with, even if the profile email changed since.
     const email = action === 'leave' && before.email ? before.email : p.email;
@@ -571,7 +576,7 @@
     store.set('qh.profile', state.profile);
     dlg.close();
     renderProfileBar();
-    if (state.pending) { const { act, iso } = state.pending; state.pending = null; send(act, iso, 'join'); }
+    if (state.pending) { const { act, iso } = state.pending; state.pending = null; send(act, iso, state.mine.has(key(act.id, iso)) ? 'leave' : 'join'); }
   });
   document.getElementById('join-cancel').addEventListener('click', () => { state.pending = null; dlg.close(); });
   f.email.addEventListener('input', () => f.email.setCustomValidity(''));

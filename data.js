@@ -10,11 +10,13 @@
  *
  * Pictures: img (photo with credit) · board (restaurant chalkboard) · art ('tennis' | 'badminton' | 'rink' | 'gym' | 'boulder')
  *
+ * tags: { label, kind } · add left: 'dates' or 'games' to show a live "N dates left" count instead of the label
+ *
  * dice (for "Roll the dice"; leave it out to keep a card out of the dice):
  *   tier    0 free · 1 up to $25 · 2 up to $75 · 3 more (cheapest usual price per person; restaurants use their own $ signs)
  *   hours   rough time needed, getting there included · weekend: true for trips that need a weekend
  *   day / evening   true, false, or [weekdays] when only some days are open that part of the day
- *   car     true if you realistically need a car
+ *   car     true if you realistically need a car; the dice leave these out, since outings go by public transit
  *   dates-type schedules can set part: 'day' | 'evening' on each date
  *   'dates'  → dates: [{ date, note }]
  */
@@ -40,7 +42,7 @@ window.QH_DATA = {
       local: 'Navette Nature day trip · Parc national d’Oka',
       blurb: 'A bus day trip: morning at the Labonté de la pomme orchard, afternoon at Oka National Park and its Calvaire trail. Everyone takes home a 3 L basket of apples.',
       img: { src: 'assets/img/oka-apples.jpg', alt: 'A small stone chapel on the Calvaire d’Oka trail among orange autumn leaves', credit: 'Stef-wiki · CC BY-SA 4.0 · cropped', page: 'https://commons.wikimedia.org/wiki/File:Parc_national_d%27Oka.jpg' },
-      tags: [{ label: 'No car needed', kind: 'free' }, { label: '2 dates left', kind: 'limited' }],
+      tags: [{ label: 'No car needed', kind: 'free' }, { label: '2 dates left', kind: 'limited', left: 'dates' }],
       facts: [
         ['Price', 'Students with ID $47.50 · adults $52.25 (bus, park entry and apples included)'],
         ['Schedule', 'Leaves the Montréal bus station (Berri-UQAM) at 8:30, back around 17:00'],
@@ -62,7 +64,7 @@ window.QH_DATA = {
       local: 'Navette Nature day trip · Lac-Monroe sector',
       blurb: 'A full day at Lac Monroe in the Laurentians by shuttle bus. Colours there are forecast to be halfway turned in the last week of September.',
       img: { src: 'assets/img/tremblant-park.jpg', alt: 'A forested hill reflected in a still lake at Lac Monroe', credit: 'Mhsheikholeslami · CC BY-SA 4.0 · cropped', page: 'https://commons.wikimedia.org/wiki/File:Parc_national_du_Mont-Tremblant-_Lac_Monroe-_Quebec_(1).jpg' },
-      tags: [{ label: 'No car needed', kind: 'free' }, { label: '2 dates left', kind: 'limited' }],
+      tags: [{ label: 'No car needed', kind: 'free' }, { label: '2 dates left', kind: 'limited', left: 'dates' }],
       facts: [
         ['Price', 'Students with ID $61 · adults $66 (bus and park entry included)'],
         ['Schedule', 'Leaves the Montréal bus station (Berri-UQAM) at 8:00, leaves Lac Monroe at 17:00, back around 19:15'],
@@ -84,7 +86,7 @@ window.QH_DATA = {
       local: 'Navette Nature day trip · Lac-Stukely sector',
       blurb: 'A shuttle-bus day at Lac Stukely in the Eastern Townships. The colours there peak later, forecast for the third week of October.',
       img: { src: 'assets/img/orford-park.jpg', alt: 'Lac Stukely with a rounded forested mountain behind it', credit: 'Boréal · CC BY-SA 3.0 · cropped', page: 'https://commons.wikimedia.org/wiki/File:2007-07_Parc_du_Mont-Orford_-_Lac_Stukeley_et_Mont_Chauve.jpg' },
-      tags: [{ label: 'No car needed', kind: 'free' }, { label: '1 date left', kind: 'limited' }],
+      tags: [{ label: 'No car needed', kind: 'free' }, { label: '1 date left', kind: 'limited', left: 'dates' }],
       facts: [
         ['Price', 'Students with ID $58.25 · adults $65.25 (bus and park entry included)'],
         ['Schedule', 'Leaves the Montréal bus station (Berri-UQAM) at 8:30, back around 18:30'],
@@ -173,17 +175,19 @@ window.QH_DATA = {
       local: 'Hautes-Gorges-de-la-Rivière-Malbaie National Park · Charlevoix',
       blurb: 'Charlevoix’s famous summit hike: up through the forest to an Arctic-alpine top, with the Malbaie River far below. Rated difficult, and a weekend trip from Montréal.',
       img: { src: 'assets/img/acropole.jpg', alt: 'View from the Acropole des Draveurs summit down the Malbaie River valley between steep cliffs', credit: 'Cephas · CC BY-SA 4.0 · cropped', page: 'https://commons.wikimedia.org/wiki/File:Acropole_des_Draveurs_05.jpg' },
-      tags: [{ label: 'Difficult', kind: 'limited' }, { label: 'Car needed', kind: 'limited' }, { label: 'Weekend trip' }],
+      tags: [{ label: 'Difficult', kind: 'limited' }, { label: 'Car needed', kind: 'limited' }, { label: 'Weekend trip' }, { label: 'Trail open until Oct 12', kind: 'limited' }],
       facts: [
         ['Trail', '11.2 km round trip · 800 m climb · 4 to 6 hours'],
-        ['Start time', 'From September 1, start between sunrise and noon. Everyone must be off the summit 3 hours before sunset.'],
+        ['Season', 'Normally open from the second Friday of June to Thanksgiving Monday (October 12, 2026), depending on trail conditions'],
+        ['Start time', 'In September, start between sunrise and noon and be off the summit by 15:30. From October 1 to closing, start by noon and be off the summit by 15:00. A park warden closes the trail.'],
         ['Bring', 'Hiking boots, at least 2 L of water each, poles, warm layers (it’s usually 5–10 °C colder on top)'],
         ['Getting there', 'Trailhead at Le Pin-Blanc campground (km 6). The park is 170 km from Québec City; in summer a mandatory shuttle runs between its two visitor centres.'],
         ['Park entry', 'Sépaq day access, $10.30 per adult']
       ],
       dice: { tier: 1, hours: 0, weekend: true, day: true, evening: false, car: true },
-      schedule: { type: 'weekly', days: [0, 1, 2, 3, 4, 5, 6] },
+      schedule: { type: 'weekly', days: [0, 1, 2, 3, 4, 5, 6], to: '2026-10-12', endedNote: 'The trail closed for the season after Thanksgiving Monday (October 12). It normally reopens on the second Friday of June.' },
       sources: [
+        { label: 'Sépaq · Acropole-des-Draveurs: important information (season, start and descent times)', url: 'https://www.sepaq.com/pq/hgo/annexes/acropole-draveurs-renseignements-importants.dot?language_id=1' },
         { label: 'Sépaq · Hautes-Gorges hiking trails', url: 'https://www.sepaq.com/pq/hgo/annexes/sentiers_pedestre.dot?language_id=1' },
         { label: 'Sépaq · Hautes-Gorges access and operating periods', url: 'https://www.sepaq.com/pq/hgo/information.dot?language_id=1' },
         { label: 'Sépaq · National park access rates', url: 'https://www.sepaq.com/pq/tarification-parcs-nationaux.dot' }
@@ -201,7 +205,7 @@ window.QH_DATA = {
         ['Night + meals', 'UdeM, Poly & HEC students $52 · other students $88.55 · everyone else $123.50 (lunch, dinner and a bed in a double room; taxes extra)'],
         ['Day visit', 'With lunch: UdeM, Poly & HEC students $16 · other students $27.25 · everyone else $38'],
         ['To do', 'Canoe or rowboat, hiking trails, campfire, beach volleyball, ping-pong, board games'],
-        ['Getting there', '592 chemin du lac Croche, Saint-Hippolyte. No transit stop on this road, so we carpool.'],
+        ['Getting there', '592 chemin du lac Croche, Saint-Hippolyte. No transit stop on this road, so you need a car.'],
         ['Booking', 'Call 450-563-3111 (ext. 1) or email sbl@iro.umontreal.ca. Groups of more than 20 must book by email.']
       ],
       dice: { tier: 1, hours: 8, day: true, evening: false, car: true },
@@ -390,10 +394,12 @@ window.QH_DATA = {
         ['Good to know', 'Groups of 7 or more must reserve ahead and pay a group fee. No elevator, no air conditioning, no food in the galleries.']
       ],
       dice: { tier: 0, hours: 2, day: true, evening: false, car: false },
-      schedule: { type: 'weekly', days: [2, 3, 4, 5, 6], to: '2027-06-24', closed: ['2026-10-12'] },
+      // Closed on McGill legal holidays: Thanksgiving, the Dec 24–Jan 1 break, Good Friday.
+      schedule: { type: 'weekly', days: [2, 3, 4, 5, 6], to: '2027-06-24', closed: ['2026-10-12', '2026-12-24', '2026-12-25', '2026-12-26', '2026-12-29', '2026-12-30', '2026-12-31', '2027-01-01', '2027-03-26'] },
       sources: [
         { label: 'Redpath · Visit (admission, hours)', url: 'https://www.mcgill.ca/redpath/visit' },
-        { label: 'Redpath · FAQ (collections, transit, rules)', url: 'https://www.mcgill.ca/redpath/faqs' }
+        { label: 'Redpath · FAQ (collections, transit, rules)', url: 'https://www.mcgill.ca/redpath/faqs' },
+        { label: 'McGill · Key dates (legal holidays 2026–27)', url: 'https://www.mcgill.ca/importantdates/key-dates' }
       ]
     },
     {
@@ -467,7 +473,7 @@ window.QH_DATA = {
       img: { src: 'assets/img/gardens-of-light.jpg', alt: 'A glowing dragon lantern over Dream Lake in the Chinese Garden at night', credit: 'Thomas1313 · CC BY-SA 4.0 · cropped', page: 'https://commons.wikimedia.org/wiki/File:Dream_Lake_(Jardin_Botanique_Montr%C3%A9al)_24.jpg' },
       tags: [{ label: 'Until Nov 1', kind: 'limited' }, { label: 'Timed tickets' }],
       facts: [
-        ['Evening hours', 'Sept 18–Oct 3: 19:00–21:00 · Oct 4–20: 18:30–21:00 · Oct 21–Nov 1: 18:00–21:00'],
+        ['Evening hours', 'Sept 3–17: 19:30–21:00 · Sept 18–Oct 3: 19:00–21:00 · Oct 4–20: 18:30–21:00 · Oct 21–Nov 1: 18:00–21:00'],
         ['Tickets', 'Reserve a timed ticket. 2026 admission for one Espace pour la vie museum: students 18+ $19 ($14.75 for Montréal-area residents), adults $25.50'],
         ['Good to know', 'Rain or shine'],
         ['Getting there', ['4101 Sherbrooke St. E · ', { metro: 'green', station: 'Pie-IX' }]]
@@ -487,7 +493,7 @@ window.QH_DATA = {
       local: 'Université de Montréal · CEPSUM stadium',
       blurb: 'Canadian university football on the UdeM campus. Tailgate on the CEPSUM terrace before kickoff.',
       img: { src: 'assets/img/carabins.jpg', alt: 'University football players in blue and black jerseys at the line of scrimmage', credit: 'Wilfredor · CC0 · cropped', page: 'https://commons.wikimedia.org/wiki/File:Universite_Laval_vs_Universite_de_Montreal,_Quebec_city,_Canada_04.jpg' },
-      tags: [{ label: '4 home games left' }],
+      tags: [{ label: '4 home games left', left: 'games' }],
       facts: [
         ['Tickets', 'Regular games $13.00–$34.25 · Oct 16 and Oct 31 $16.50–$49.25 (service fees and taxes extra)'],
         ['Tailgate', 'On the CEPSUM terrace near the arena from 3 hours before kickoff; free BBQ grills for your own food; cans OK, no glass'],

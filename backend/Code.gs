@@ -9,11 +9,12 @@
  * Trigger     → sendPendingNotifications() every 5 minutes (installed by setup()): 30 minutes after a
  *               sign-up that wasn't cancelled, emails the participant Peter's contact and the organizer a summary.
  *               The participant email follows the page language (English, French or Chinese).
+ *               Cancelling after that email went out also tells the organizer, who may already have added them to a chat.
  * QR.gs       → optional second file with Peter's WhatsApp / WeChat QR images and links (kept out of git).
  *               Emails stay in the Sheet; they are never returned to the page.
  */
 
-const VERSION = 7;
+const VERSION = 8;
 const SITE = 'https://peter-awe.github.io/quebec-hangouts/';
 const SHEET_NAME = 'signups';
 const SUGGEST_SHEET = 'suggestions';
@@ -166,6 +167,7 @@ function doPost(e) {
 
   const lock = LockService.getScriptLock();
   lock.waitLock(10000);
+  let lateCancel = null;   // the row, when someone cancels after already getting Peter's contact
   try {
     const sh = sheet_();
     const rows = sh.getDataRange().getValues();
@@ -189,12 +191,31 @@ function doPost(e) {
     if (action === 'leave' && rowNumber !== -1) {
       sh.getRange(rowNumber, COL.status).setValue('cancelled');
       CacheService.getScriptCache().remove('counts');
+      if (/^sent /.test(String(rows[rowNumber - 1][COL.notified - 1]))) lateCancel = rows[rowNumber - 1];
     }
   } finally {
     lock.releaseLock();
   }
 
-  return json_({ ok: true, action: action, counts: counts_() });
+  const counts = counts_();
+  if (lateCancel && NOTIFY_ORGANIZER) {
+    try {
+      const left = counts[activityId + '|' + date] || 0;
+      const who = (lateCancel[COL.name - 1] || lateCancel[COL.email - 1]) + ' <' + lateCancel[COL.email - 1] + '>';
+      const what = String(lateCancel[COL.activity - 1] || activityId);
+      MailApp.sendEmail({
+        to: Session.getEffectiveUser().getEmail(),
+        subject: ascii_('[Quebec Hangouts] Cancelled: ' + what + ' on ' + date + ', ' + left + ' going'),
+        body: who + ' cancelled ' + what + ' on ' + date + ' after they had already been emailed your contact' +
+              (lateCancel[COL.chat - 1] ? ' (' + lateCancel[COL.chat - 1] + ')' : '') + '.\n\n' +
+              'Headcount for that day is now ' + left + '. If you already added them to a group chat, you may want to check in with them.'
+      });
+    } catch (err) {
+      console.error('late cancel mail failed', err);
+    }
+  }
+
+  return json_({ ok: true, action: action, counts: counts });
 }
 
 // ---------- helpers ----------
@@ -294,7 +315,7 @@ function sendParticipantEmail_(m) {
     (apps.length ? '<p>' + c.addPeter(appNames) + c.stop + c.howTo + '</p>' +
       '<table cellpadding="0" cellspacing="0" role="presentation"><tr>' + cells + '</tr></table>' : '<p>' + c.noApps + '</p>') +
     '<p>' + c.details + '<a href="' + link + '">' + esc_(c.linkText(place)) + '</a></p>' +
-    '<p style="color:#57635d;font-size:13px">' + c.change + ' ' + c.safety + '</p>' +
+    '<p style="color:#57635d;font-size:13px">' + c.change + (lang === 'zh' ? '' : ' ') + c.safety + '</p>' +
     '</div>';
 
   const text = c.hi(m.name) + '\n\n' +
